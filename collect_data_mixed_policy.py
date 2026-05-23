@@ -70,6 +70,8 @@ def collect_data_dqn(n_steps=100_000, seed=0):
     current_reward = 0.0
     random.seed(seed)
     torch.manual_seed(seed)
+    np.random.seed(seed)
+    torch.cuda.manual_seed_all(seed)
 
     # DQN setup
     q_net = QNetwork()
@@ -110,12 +112,13 @@ def collect_data_dqn(n_steps=100_000, seed=0):
         # Store for DQN training
         buffer.push(obs, action, reward, next_obs, done)
 
-        obs = next_obs if not done else env.reset()[0]
         if done:
             episode += 1
             obs, _ = env.reset(seed=seed + episode)
             episode_rewards.append(current_reward)
             current_reward = 0.0
+        else:
+            obs = next_obs
 
         # Train DQN
         if len(buffer) >= batch_size:
@@ -138,7 +141,7 @@ def collect_data_dqn(n_steps=100_000, seed=0):
             optimizer.step()
 
         # update target
-        if step % target_update == 0:
+        if step > 0 and step % target_update == 0:
             target_net.load_state_dict(q_net.state_dict())
 
         # epsilon decay
@@ -150,7 +153,10 @@ def collect_data_dqn(n_steps=100_000, seed=0):
     A = np.asarray(actions, dtype=np.int64)
     SN = np.asarray(next_states, dtype=np.float32)
 
-    print(f"Reward moyen (sur {len(episode_rewards)} épisodes) : {np.mean(episode_rewards):.2f}")
+    if len(episode_rewards) > 0:
+        print(f"Reward moyen (sur {len(episode_rewards)} épisodes) : {np.mean(episode_rewards):.2f}")
+    else:
+        print("Aucun épisode terminé pendant la collecte.")
 
     print(f"Transitions collectées : {len(S)}")
     evaluate_policy(q_net, n_episodes=10)
@@ -183,6 +189,7 @@ def evaluate_policy(q_net, n_episodes=10, seed=123):
         scores.append(total_reward)
     env.close()
     print(f"Évaluation greedy : mean={np.mean(scores):.2f}  std={np.std(scores):.2f}")
+    q_net.train()  # revenir en mode entraînement après évaluation
 
 
 # ─────────────────────────────────────────────
@@ -320,8 +327,6 @@ if __name__ == "__main__":
     print("\nFichier sauvegardé : cartpole_data_mixed_policy.npz")
 
     #print("\nFichiers sauvegardés : s_train.npy, a_train.npy, sn_train.npy, ...")
-    print(f"Normalisation : mean={mean}, std={std}")
-
     print(f"Normalisation : mean={mean.flatten()}, std={std.flatten()}")
 
     # Rechargement dans un autre script :
