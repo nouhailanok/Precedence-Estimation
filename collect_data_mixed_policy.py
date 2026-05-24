@@ -56,108 +56,286 @@ class ReplayBuffer:
     def __len__(self):
         return len(self.buffer)
 
+def plot_learning_curve(episode_rewards: list, window: int = 20, save_path: str = "dqn_learning_curve.png"):
+    """
+    Affiche la courbe de reward par épisode avec moyenne glissante.
+    C'est la figure centrale pour montrer que la mixed policy
+    produit de meilleures données qu'une politique aléatoire.
+    """
+    if len(episode_rewards) < 2:
+        print("Pas assez d'épisodes pour tracer la courbe.")
+        return
+ 
+    rewards = np.array(episode_rewards)
+    episodes = np.arange(1, len(rewards) + 1)
+ 
+    # Moyenne glissante
+    kernel   = np.ones(window) / window
+    smoothed = np.convolve(rewards, kernel, mode="valid")
+    smooth_x = np.arange(window, len(rewards) + 1)
+ 
+    fig, ax = plt.subplots(figsize=(10, 4))
+ 
+    ax.plot(episodes, rewards,
+            color="#378ADD", alpha=0.25, linewidth=0.8, label="reward brut")
+    ax.plot(smooth_x, smoothed,
+            color="#1D9E75", linewidth=2,
+            label=f"moyenne glissante ({window} épisodes)")
+    ax.axhline(y=500, color="#D85A30", linestyle="--",
+               linewidth=1, alpha=0.7, label="score max (500)")
+    ax.axhline(y=np.mean(rewards[-50:]) if len(rewards) >= 50 else np.mean(rewards),
+               color="#9B59B6", linestyle=":",
+               linewidth=1, label=f"moy. finale = {np.mean(rewards[-50:]):.0f}")
+ 
+    ax.set_xlabel("Épisode")
+    ax.set_ylabel("Reward cumulé")
+    ax.set_title("Apprentissage DQN pendant la collecte mixed policy — CartPole-v1")
+    ax.legend(fontsize=9)
+    ax.grid(alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=130)
+    plt.show()
+    print(f"Sauvegardé → {save_path}")
+    
 
 
 # ─────────────────────────────────────────────
 # 1. COLLECTE SIMPLE — politique aléatoire
 # ─────────────────────────────────────────────
 
-def collect_data_dqn(n_steps=100_000, seed=0):
-    env = gym.make("CartPole-v1")
-    rng = np.random.default_rng(seed)
-    episode_rewards = []
-    episode=0
-    current_reward = 0.0
-    random.seed(seed)
-    torch.manual_seed(seed)
+def collect_data_dqn(n_steps: int = 100_000, seed: int = 0):
+    """
+    Collecte mixed policy : ε-greedy DQN.
+    Corrections par rapport à v1 :
+      - epsilon_decay calibré pour atteindre epsilon_min à ~80% des steps
+      - env.reset() sans seed fixe dans la boucle (diversité des états initiaux)
+      - retourne aussi episode_rewards pour la courbe d'apprentissage
+    """
 
-    # DQN setup
-    q_net = QNetwork()
+ 
+    # ── Reproductibilité ──
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    rng = np.random.default_rng(seed)
+ 
+    env = gym.make("CartPole-v1")
+ 
+    # ── DQN ──
+    q_net      = QNetwork()
     target_net = QNetwork()
     target_net.load_state_dict(q_net.state_dict())
-
-    optimizer = optim.Adam(q_net.parameters(), lr=1e-3)
-    buffer = ReplayBuffer()
-
-    gamma = 0.99
-    batch_size = 64
-    epsilon = 1.0
-    epsilon_min = 0.05
-    epsilon_decay = 0.9995
+    optimizer  = optim.Adam(q_net.parameters(), lr=1e-3)
+    buffer     = ReplayBuffer(capacity=50_000)
+ 
+    # Hyperparamètres
+    gamma        = 0.99
+    batch_size   = 64
+    epsilon      = 1.0
+    epsilon_min  = 0.05
     target_update = 500
-
+ 
+    # Calibration du decay : atteindre epsilon_min après 80% des steps
+    explore_steps = int(0.80 * n_steps)
+    epsilon_decay = (epsilon_min / epsilon) ** (1.0 / explore_steps)
+ 
+    print(f"epsilon_decay = {epsilon_decay:.7f}  "
+          f"(ε_min atteint au step ~{explore_steps:,})")
+ 
+    # ── Collecte ──
     states, actions, next_states = [], [], []
-
-    obs, _ = env.reset(seed=seed)
+    episode_rewards = []
+    current_reward  = 0.0
+    episode         = 0
+ 
+    obs, _ = env.reset(seed=seed)       # seed uniquement pour le 1er épisode
+ 
     for step in range(n_steps):
-        # ε-greedy action
+ 
+        # ε-greedy
         if rng.random() < epsilon:
             action = env.action_space.sample()
         else:
             with torch.no_grad():
-                q_values = q_net(torch.tensor(obs, dtype=torch.float32))
-                action = int(torch.argmax(q_values).item())
-
+                q_vals = q_net(torch.tensor(obs, dtype=torch.float32))
+                action = int(torch.argmax(q_vals).item())
+ 
         next_obs, reward, terminated, truncated, _ = env.step(action)
+        done            = terminated or truncated
         current_reward += reward
-        done = terminated or truncated
-
-        # Store for dataset
+ 
+        # Dataset world model
         states.append(obs)
         actions.append(action)
         next_states.append(next_obs)
-
-        # Store for DQN training
+ 
+        # Replay buffer DQN
         buffer.push(obs, action, reward, next_obs, done)
-
-        obs = next_obs if not done else env.reset()[0]
+ 
+        obs = next_obs if not done else env.reset()[0]   # reset sans seed fixe
+ 
         if done:
-            episode += 1
-            obs, _ = env.reset(seed=seed + episode)
             episode_rewards.append(current_reward)
+            #obs, _ = env.reset(seed=seed + episode)
             current_reward = 0.0
-
-        # Train DQN
+            episode       += 1
+ 
+        # ── Entraînement DQN ──
         if len(buffer) >= batch_size:
-            s, a, r, s2, d = buffer.sample(batch_size)
-
-            s  = torch.tensor(s, dtype=torch.float32)
-            a  = torch.tensor(a, dtype=torch.int64).unsqueeze(1)
-            r  = torch.tensor(r, dtype=torch.float32)
-            s2 = torch.tensor(s2, dtype=torch.float32)
-            d  = torch.tensor(d, dtype=torch.float32)
-
-            q_values = q_net(s).gather(1, a).squeeze()
+            s_b, a_b, r_b, s2_b, d_b = buffer.sample(batch_size)
+ 
+            s_b  = torch.tensor(s_b,  dtype=torch.float32)
+            a_b  = torch.tensor(a_b,  dtype=torch.int64).unsqueeze(1)
+            r_b  = torch.tensor(r_b,  dtype=torch.float32)
+            s2_b = torch.tensor(s2_b, dtype=torch.float32)
+            d_b  = torch.tensor(d_b,  dtype=torch.float32)
+ 
+            q_values = q_net(s_b).gather(1, a_b).squeeze()
             with torch.no_grad():
-                max_q_next = target_net(s2).max(1)[0]
-                target = r + gamma * max_q_next * (1 - d)
-
+                target = r_b + gamma * target_net(s2_b).max(1)[0] * (1 - d_b)
+ 
             loss = nn.MSELoss()(q_values, target)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-
-        # update target
-        if step % target_update == 0:
+ 
+        # ── Target network update ──
+        if step > 0 and step % target_update == 0:
             target_net.load_state_dict(q_net.state_dict())
-
-        # epsilon decay
+ 
+        # ── Epsilon decay ──
         epsilon = max(epsilon_min, epsilon * epsilon_decay)
-
+ 
+        # ── Log tous les 10k steps ──
+        if (step + 1) % 10_000 == 0:
+            recent = np.mean(episode_rewards[-20:]) if episode_rewards else 0.0
+            print(f"Step {step+1:>6,} | ε={epsilon:.3f} | "
+                  f"reward moy. (20 ep.) = {recent:.1f} | "
+                  f"épisodes = {episode}")
+ 
     env.close()
-
-    S = np.asarray(states, dtype=np.float32)
-    A = np.asarray(actions, dtype=np.int64)
+ 
+    # ── Résultats ──
+    S  = np.asarray(states,      dtype=np.float32)
+    A  = np.asarray(actions,     dtype=np.int64)
     SN = np.asarray(next_states, dtype=np.float32)
-
-    print(f"Reward moyen (sur {len(episode_rewards)} épisodes) : {np.mean(episode_rewards):.2f}")
-
-    print(f"Transitions collectées : {len(S)}")
-    evaluate_policy(q_net, n_episodes=10)
+ 
+    print(f"\nTransitions collectées : {len(S):,}")
+    print(f"Épisodes              : {episode}")
+    print(f"Reward moyen final    : {np.mean(episode_rewards[-50:]):.1f}")
+ 
+    evaluate_policy(q_net, n_episodes=20)
     torch.save(q_net.state_dict(), "dqn_cartpole.pth")
-    print("Modèle DQN sauvegardé : dqn_cartpole.pth")
+    print("Modèle DQN sauvegardé → dqn_cartpole.pth")
+ 
+    plot_learning_curve(episode_rewards)
+ 
+    return S, A, SN, episode_rewards
 
-    return S, A, SN
+
+# def collect_data_dqn(n_steps=100_000, seed=0):
+#     env = gym.make("CartPole-v1")
+#     rng = np.random.default_rng(seed)
+#     episode_rewards = []
+#     episode=0
+#     current_reward = 0.0
+#     random.seed(seed)
+#     torch.manual_seed(seed)
+#     np.random.seed(seed)
+#     torch.cuda.manual_seed_all(seed)
+
+#     # DQN setup
+#     q_net = QNetwork()
+#     target_net = QNetwork()
+#     target_net.load_state_dict(q_net.state_dict())
+
+#     optimizer = optim.Adam(q_net.parameters(), lr=1e-3)
+#     buffer = ReplayBuffer()
+
+#     gamma = 0.99
+#     batch_size = 64
+#     epsilon = 1.0
+#     epsilon_min = 0.05
+#     epsilon_decay = 0.9995
+#     target_update = 500
+
+#     states, actions, next_states = [], [], []
+
+#     obs, _ = env.reset(seed=seed)
+#     for step in range(n_steps):
+#         # ε-greedy action
+#         if rng.random() < epsilon:
+#             action = env.action_space.sample()
+#         else:
+#             with torch.no_grad():
+#                 q_values = q_net(torch.tensor(obs, dtype=torch.float32))
+#                 action = int(torch.argmax(q_values).item())
+
+#         next_obs, reward, terminated, truncated, _ = env.step(action)
+#         current_reward += reward
+#         done = terminated or truncated
+
+#         # Store for dataset
+#         states.append(obs)
+#         actions.append(action)
+#         next_states.append(next_obs)
+
+#         # Store for DQN training
+#         buffer.push(obs, action, reward, next_obs, done)
+
+#         if done:
+#             episode += 1
+#             obs, _ = env.reset(seed=seed + episode)
+#             episode_rewards.append(current_reward)
+#             current_reward = 0.0
+#         else:
+#             obs = next_obs
+
+#         # Train DQN
+#         if len(buffer) >= batch_size:
+#             s, a, r, s2, d = buffer.sample(batch_size)
+
+#             s  = torch.tensor(s, dtype=torch.float32)
+#             a  = torch.tensor(a, dtype=torch.int64).unsqueeze(1)
+#             r  = torch.tensor(r, dtype=torch.float32)
+#             s2 = torch.tensor(s2, dtype=torch.float32)
+#             d  = torch.tensor(d, dtype=torch.float32)
+
+#             q_values = q_net(s).gather(1, a).squeeze()
+#             with torch.no_grad():
+#                 max_q_next = target_net(s2).max(1)[0]
+#                 target = r + gamma * max_q_next * (1 - d)
+
+#             loss = nn.MSELoss()(q_values, target)
+#             optimizer.zero_grad()
+#             loss.backward()
+#             optimizer.step()
+
+#         # update target
+#         if step > 0 and step % target_update == 0:
+#             target_net.load_state_dict(q_net.state_dict())
+
+#         # epsilon decay
+#         epsilon = max(epsilon_min, epsilon * epsilon_decay)
+
+#     env.close()
+
+#     S = np.asarray(states, dtype=np.float32)
+#     A = np.asarray(actions, dtype=np.int64)
+#     SN = np.asarray(next_states, dtype=np.float32)
+
+#     if len(episode_rewards) > 0:
+#         print(f"Reward moyen (sur {len(episode_rewards)} épisodes) : {np.mean(episode_rewards):.2f}")
+#     else:
+#         print("Aucun épisode terminé pendant la collecte.")
+
+#     print(f"Transitions collectées : {len(S)}")
+#     evaluate_policy(q_net, n_episodes=10)
+#     torch.save(q_net.state_dict(), "dqn_cartpole.pth")
+#     print("Modèle DQN sauvegardé : dqn_cartpole.pth")
+
+#     return S, A, SN
 
 # ─────────────────────────────────────────────
 #  Évaluation réelle (policy greedy)
@@ -183,6 +361,7 @@ def evaluate_policy(q_net, n_episodes=10, seed=123):
         scores.append(total_reward)
     env.close()
     print(f"Évaluation greedy : mean={np.mean(scores):.2f}  std={np.std(scores):.2f}")
+    q_net.train()  # revenir en mode entraînement après évaluation
 
 
 # ─────────────────────────────────────────────
@@ -235,6 +414,7 @@ def normalize(S: np.ndarray):
     """Retourne S_norm, mean, std."""
     mean = S.mean(axis=0, keepdims=True)
     std  = S.std(axis=0, keepdims=True) + 1e-8
+    std = np.where(std < 1e-8, 1.0, std)
     return (S - mean) / std, mean, std
 
 
@@ -291,7 +471,7 @@ def quick_check():
 if __name__ == "__main__":
     quick_check()
 
-    S, A, SN = collect_data_dqn(n_steps=100_000, seed=0)
+    S, A, SN ,episode_rewards = collect_data_dqn(n_steps=100_000, seed=0)
     analyze_dataset(S, A, SN)
 
     # One-hot actions
@@ -320,8 +500,6 @@ if __name__ == "__main__":
     print("\nFichier sauvegardé : cartpole_data_mixed_policy.npz")
 
     #print("\nFichiers sauvegardés : s_train.npy, a_train.npy, sn_train.npy, ...")
-    print(f"Normalisation : mean={mean}, std={std}")
-
     print(f"Normalisation : mean={mean.flatten()}, std={std.flatten()}")
 
     # Rechargement dans un autre script :
