@@ -32,6 +32,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 import matplotlib.pyplot as plt
 import gymnasium as gym
+import os
 
 
 # ════════════════════════════════════════════════════════════
@@ -40,6 +41,7 @@ import gymnasium as gym
 
 DATA_PATH       = "cartpole_data_mixed_policy.npz"
 CHECKPOINT_PATH = "best_transition_dnn.pth"
+PLOTS_DIR = "winner_model_plots"
 DEVICE          = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 BATCH_SIZE  = 256
@@ -73,6 +75,7 @@ def set_seed(seed: int = SEED):
     torch.backends.cudnn.benchmark     = False
 
 set_seed()
+os.makedirs(PLOTS_DIR, exist_ok=True)
 print(f"Device : {DEVICE}  |  Loss : {LOSS_TYPE.upper()}"
       + (f"  (delta={HUBER_DELTA})" if LOSS_TYPE == "huber" else ""))
 
@@ -182,8 +185,8 @@ class TransitionDNN(nn.Module):
     Sortie  : Δs normalisé prédit (4D)
     Reconstruction : s_{t+1} = s_t + Δs_prédit  (dans l'espace normalisé)
 
-    Architecture Small [64-64] — meilleure sur CartPole (MSE=6e-7, R²=1.0)
-    validée sur 5 seeds vs 13 autres architectures.
+    Architecture Tiny [32-32] — meilleure sur CartPole (MSE=5e-7, R²=1.0)
+    validée sur 5 seeds vs 13 autres architectures via dnn_compare_robust.py
     """
     def __init__(self, state_dim: int = 4, action_dim: int = 2):
         super().__init__()
@@ -515,7 +518,7 @@ def plot_training_curve(tr_losses, val_losses):
     ax.legend()
     ax.grid(alpha=0.3)
     plt.tight_layout()
-    plt.savefig("training_curve.png", dpi=130)
+    plt.savefig(os.path.join(PLOTS_DIR, "training_curve.png"), dpi=130)
     plt.show()
     print("Sauvegardé → training_curve.png")
 
@@ -537,7 +540,7 @@ def plot_predictions(pred_phys, real_phys, n=400):
     plt.suptitle(f"Prédiction s' (reconstruit via Δs) vs Réalité — [{LOSS_TYPE.upper()}]",
                  fontsize=11)
     plt.tight_layout()
-    plt.savefig("predictions_scatter.png", dpi=130)
+    plt.savefig(os.path.join(PLOTS_DIR, "predictions_scatter.png"), dpi=130)
     plt.show()
     print("Sauvegardé → predictions_scatter.png")
 
@@ -557,7 +560,7 @@ def plot_delta_distribution(delta_pred_norm, delta_real_norm):
     plt.suptitle("Distribution des deltas : prédit vs réel — espace normalisé",
                  fontsize=11)
     plt.tight_layout()
-    plt.savefig("delta_distribution.png", dpi=130)
+    plt.savefig(os.path.join(PLOTS_DIR, "delta_distribution.png"), dpi=130)
     plt.show()
     print("Sauvegardé → delta_distribution.png")
 
@@ -598,7 +601,7 @@ def plot_rollout_episode(ep_data: dict, title_suffix: str = ""):
         fontsize=11
     )
     plt.tight_layout()
-    fname = f"rollout_{title_suffix.lower().replace(' ', '_')}.png"
+    fname = os.path.join(PLOTS_DIR, f"rollout_{title_suffix.lower().replace(' ', '_')}.png")
     plt.savefig(fname, dpi=130)
     plt.show()
     print(f"Sauvegardé → {fname}")
@@ -630,7 +633,7 @@ def plot_rollout_drift(drift_mean: np.ndarray):
     ax.legend(fontsize=9)
     ax.grid(alpha=0.3)
     plt.tight_layout()
-    plt.savefig("rollout_drift.png", dpi=130)
+    plt.savefig(os.path.join(PLOTS_DIR, "rollout_drift.png"), dpi=130)
     plt.show()
     print("Sauvegardé → rollout_drift.png")
 
@@ -663,9 +666,9 @@ def plot_rollout_error_boxplot(episodes_data: list):
     )
     ax.grid(axis="y", alpha=0.3)
     plt.tight_layout()
-    plt.savefig("rollout_error_boxplot.png", dpi=130)
+    plt.savefig(os.path.join(PLOTS_DIR, "rollout_error_boxplot.png"), dpi=130)
     plt.show()
-    print("Sauvegardé → rollout_error_boxplot.png")
+    print("Sauvegardé → " + os.path.join(PLOTS_DIR, "rollout_error_boxplot.png"))
 
 
 # ════════════════════════════════════════════════════════════
