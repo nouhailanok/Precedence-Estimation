@@ -32,6 +32,7 @@ import matplotlib.patches as mpatches
 
 DATA_PATH      = "cartpole_data_mixed_policy.npz"
 CHECKPOINT_DIR = "checkpoints_compare"
+PLOTS_DIR = "compare_plots"
 DEVICE         = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 BATCH_SIZE  = 256
@@ -47,6 +48,7 @@ LOSS_TYPE   = "mse"      # "mse" ou "huber" — MSE recommandé (voir analyse)
 HUBER_DELTA = 1.0
 
 os.makedirs(CHECKPOINT_DIR, exist_ok=True)
+os.makedirs(PLOTS_DIR, exist_ok=True)
 print(f"Device : {DEVICE}  |  Loss : {LOSS_TYPE.upper()}  |  {N_SEEDS} seeds/architecture")
 
 
@@ -400,7 +402,7 @@ def plot_barplot(summary: dict, metric: str, ylabel: str, title: str, fname: str
                  fontsize=11)
     ax.grid(axis="y", alpha=0.3)
     plt.tight_layout()
-    plt.savefig(fname, dpi=140)
+    plt.savefig(os.path.join(PLOTS_DIR, fname), dpi=140)
     plt.show()
     print(f"Sauvegardé → {fname}")
 
@@ -453,9 +455,9 @@ def plot_radar(summary: dict, top_n: int = 6):
                  fontsize=11, pad=20)
     ax.legend(loc="upper right", bbox_to_anchor=(1.4, 1.1), fontsize=9)
     plt.tight_layout()
-    plt.savefig("radar_comparison.png", dpi=140)
+    plt.savefig(os.path.join(PLOTS_DIR, "radar_comparison.png"), dpi=140)
     plt.show()
-    print("Sauvegardé → radar_comparison.png")
+    print("Sauvegardé → " + os.path.join(PLOTS_DIR, "radar_comparison.png"))
 
 
 def plot_rmse_per_dim(summary: dict, top_n: int = 5):
@@ -489,9 +491,9 @@ def plot_rmse_per_dim(summary: dict, top_n: int = 5):
     ax.set_title(f"RMSE physique par dimension — Top {top_n} architectures",
                  fontsize=11)
     plt.tight_layout()
-    plt.savefig("rmse_per_dim_heatmap.png", dpi=140)
+    plt.savefig(os.path.join(PLOTS_DIR, "rmse_per_dim_heatmap.png"), dpi=140)
     plt.show()
-    print("Sauvegardé → rmse_per_dim_heatmap.png")
+    print("Sauvegardé → " + os.path.join(PLOTS_DIR, "rmse_per_dim_heatmap.png"))
 
 
 def print_final_table(summary: dict):
@@ -630,8 +632,8 @@ if __name__ == "__main__":
     plot_rmse_per_dim(summary, top_n=5)
 
     # 5. Sauvegarde des résultats bruts
-    np.save("comparison_summary.npy", summary)
-    print("\nRésultats sauvegardés → comparison_summary.npy")
+    np.save(os.path.join(PLOTS_DIR, "comparison_summary.npy"), summary)
+    print("\nRésultats sauvegardés → " + os.path.join(PLOTS_DIR, "comparison_summary.npy"))
     print("\nFigures générées :")
     print("  compare_mse_delta.png     — MSE sur Δs toutes architectures")
     print("  compare_rmse_phys.png     — RMSE physique toutes architectures")
