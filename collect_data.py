@@ -21,6 +21,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+
 # ─────────────────────────────────────────────
 # 1. COLLECTE SIMPLE — politique aléatoire
 # ─────────────────────────────────────────────
@@ -136,6 +137,7 @@ def split_dataset(S, A, SN, ratio: float = 0.7,ratio_val: float = 0.10 ,ratio_te
         idx = rng.permutation(N)
     else:
         idx = np.arange(N)
+        
     cut = int(N * ratio)
     cut_val = int(N * (ratio + ratio_val))
     tr, val, te = idx[:cut], idx[cut:cut_val], idx[cut_val:]
@@ -215,8 +217,9 @@ if __name__ == "__main__":
     # np.save("sn_test.npy",  sn_te_norm)
     # np.save("mean.npy", mean)
     # np.save("std.npy", std)
+    print("\nFichier sauvegardé : cartpole_data.npz")
 
-    print("\nFichiers sauvegardés : s_train.npy, a_train.npy, sn_train.npy, ...")
+    #print("\nFichiers sauvegardés : s_train.npy, a_train.npy, sn_train.npy, ...")
     print(f"Normalisation : mean={mean}, std={std}")
 
     print(f"Normalisation : mean={mean.flatten()}, std={std.flatten()}")
