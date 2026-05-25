@@ -20,8 +20,9 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 WORLD_MODEL_PATH = os.path.join(BASE_DIR, "checkpoints_compare/Tiny_seed0.pth")
 ENV_NAME         = "CartPole-v1"
+PLOTS_CREATE_DIR = os.path.join(BASE_DIR, "CREATEAGENT_plots")
 N_DYNA           = 10           # Dyna steps par pas réel
-N_EPISODES       = 400
+N_EPISODES       = 450
 MAX_STEPS_PER_EP = 500
 N_ACTIONS        = 2
 BUFFER_CAPACITY  = 40000
@@ -34,6 +35,7 @@ EPS_END          = 0.02
 EPS_DECAY        = 0.995
 SEED             = 42
 DEVICE           = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+os.makedirs(PLOTS_CREATE_DIR, exist_ok=True)
 
 np.random.seed(SEED)
 random.seed(SEED)
@@ -57,17 +59,38 @@ class WorldModel(nn.Module):
         return state + self.forward(state, action)
 
 # === World Model Utilities
+# def load_world_model(path, mean_std_path="cartpole_data_mixed_policy.npz"):
+#     # load world model (Δs)
+#     wm = WorldModel().to(DEVICE)
+#     wm.load_state_dict(torch.load(path, map_location="cpu"))
+#     wm.eval()
+#     for p in wm.parameters(): p.requires_grad = False
+#     # Load normalization stats (mean,std used at world model training time)
+#     stats = np.load(mean_std_path)
+#     mean = stats["mean"].astype(np.float32).reshape(-1)
+#     std = stats["std"].astype(np.float32).reshape(-1)
+#     return wm, mean, std
+
 def load_world_model(path, mean_std_path="cartpole_data_mixed_policy.npz"):
     # load world model (Δs)
     wm = WorldModel().to(DEVICE)
-    wm.load_state_dict(torch.load(path, map_location="cpu"))
+    wm.load_state_dict(torch.load(path, map_location=DEVICE))
     wm.eval()
-    for p in wm.parameters(): p.requires_grad = False
+    for p in wm.parameters():
+        p.requires_grad = False
     # Load normalization stats (mean,std used at world model training time)
-    stats = np.load(mean_std_path)
-    mean = stats["mean"].astype(np.float32).reshape(-1)
-    std = stats["std"].astype(np.float32).reshape(-1)
+
+    if mean_std_path and os.path.exists(mean_std_path):
+        stats = np.load(mean_std_path)
+        mean = stats["mean"].astype(np.float32)
+        std  = stats["std"].astype(np.float32)
+    else:
+        # CartPole : normalisation identité si stats absentes
+        mean = np.zeros(4, dtype=np.float32)
+        std  = np.ones(4,  dtype=np.float32)
+        print("[WM] Attention : mean/std non trouvés, normalisation désactivée.")
     return wm, mean, std
+
 
 def normalize_state(s, mean, std):
     s = np.asarray(s, dtype=np.float32).reshape(-1)
@@ -93,30 +116,67 @@ class QNet(nn.Module):
     def forward(self, x):
         return self.net(x)
 
+# class ReplayBuffer:
+#     def __init__(self, capacity=BUFFER_CAPACITY):
+#         self.buffer = deque(maxlen=capacity)
+#         self.real_count = 0    # optionnel : suivi réel/fake
+#         self.synth_count = 0
+#     def push(self, s, a, r, s2, done, is_synthetic=False):
+#         self.buffer.append((s, a, r, s2, done, is_synthetic))
+#         if is_synthetic: self.synth_count += 1
+#         else: self.real_count += 1
+#     def sample(self, batch_size, synthetic_ratio=None):
+#         """
+#         Option : impose un ratio de fake/real dans le batch (avancé)
+#         """
+#         batch = random.sample(self.buffer, batch_size)
+#         s, a, r, s2, d, syn = zip(*batch)
+#         return (
+#             np.stack(s), np.array(a), np.array(r, dtype=np.float32),
+#             np.stack(s2), np.array(d, dtype=np.float32)
+#         )
+#     def __len__(self):
+#         return len(self.buffer)
+#     def real_fraction(self):
+#         n = self.real_count + self.synth_count
+#         return self.real_count / (n+1e-6)
+
+
 class ReplayBuffer:
     def __init__(self, capacity=BUFFER_CAPACITY):
         self.buffer = deque(maxlen=capacity)
-        self.real_count = 0    # optionnel : suivi réel/fake
+        self._list  = []          # miroir pour indexation rapide
+        self.real_count = 0
         self.synth_count = 0
+
     def push(self, s, a, r, s2, done, is_synthetic=False):
-        self.buffer.append((s, a, r, s2, done, is_synthetic))
+        if len(self.buffer) == self.buffer.maxlen:
+            self._list.pop(0)     # sync avec le deque
+        t = (s, a, r, s2, done, is_synthetic)
+        self.buffer.append(t)
+        self._list.append(t)
         if is_synthetic: self.synth_count += 1
-        else: self.real_count += 1
-    def sample(self, batch_size, synthetic_ratio=None):
-        """
-        Option : impose un ratio de fake/real dans le batch (avancé)
-        """
+        else:            self.real_count  += 1
+
+    def sample_seed_state(self, recent_k=2000):
+        """Tire un état seed dans les recent_k dernières transitions."""
+        lo  = max(0, len(self._list) - recent_k)
+        idx = random.randint(lo, len(self._list) - 1)
+        return self._list[idx][0]   # state uniquement
+
+    def sample(self, batch_size):
         batch = random.sample(self.buffer, batch_size)
-        s, a, r, s2, d, syn = zip(*batch)
-        return (
-            np.stack(s), np.array(a), np.array(r, dtype=np.float32),
-            np.stack(s2), np.array(d, dtype=np.float32)
-        )
+        s, a, r, s2, d, _ = zip(*batch)
+        return (np.stack(s), np.array(a), np.array(r, dtype=np.float32),
+                np.stack(s2), np.array(d, dtype=np.float32))
+
     def __len__(self):
         return len(self.buffer)
+    
     def real_fraction(self):
         n = self.real_count + self.synth_count
         return self.real_count / (n+1e-6)
+    
 
 def safe_torch(x, dtype, device=DEVICE):
     return torch.tensor(np.asarray(x), dtype=dtype, device=device)
@@ -182,14 +242,19 @@ def train_dyna():
             if N_DYNA > 0 and len(buffer) > BATCH_SIZE:
                 for _ in range(N_DYNA):
                     # → État seedé : récent ou au hasard mais pas trop vieux
-                    idx = np.random.randint(max(0, len(buffer)-2000), len(buffer))   # privilégie les récents
-                    s_seed, _, _, _, _, _ = buffer.buffer[idx]
+                    s_seed = buffer.sample_seed_state()
                     s_norm = normalize_state(s_seed, mean, std)
                     # → Action : soft-greedy sur QNet mais injecte un peu de random (mix)
-                    if np.random.rand() < 0.6:
-                        a_dyna = qnet(safe_torch(s_seed, torch.float32).unsqueeze(0)).argmax().item()
-                    else:
+                    # if np.random.rand() < eps:
+                    #     a_dyna = qnet(safe_torch(s_seed, torch.float32).unsqueeze(0)).argmax().item()
+                    # else:
+                    #     a_dyna = np.random.randint(0, n_act)
+
+                    if np.random.rand() < eps:
                         a_dyna = np.random.randint(0, n_act)
+                    else:
+                        a_dyna = qnet(safe_torch(s_seed, torch.float32).unsqueeze(0)).argmax().item()
+
                     a_oh    = one_hot(a_dyna)
                     # → WM : toujours batch shape [1,6]
                     s_in = safe_torch(np.atleast_2d(s_norm), torch.float32)
@@ -210,12 +275,13 @@ def train_dyna():
                     )
 
             obs = next_obs
-            if done: break
-            steps_total += 1
 
-            # Sync Q-target
-            if steps_total > 0 and steps_total % TARGET_FREQ == 0:
+            steps_total += 1
+            if steps_total % TARGET_FREQ == 0:
                 q_target.load_state_dict(qnet.state_dict())
+            if done:
+                break
+
         all_rewards.append(ep_reward)
         mean_rewards.append(np.mean(all_rewards[-25:]))
         eps = max(EPS_END, eps * EPS_DECAY)
@@ -235,9 +301,9 @@ def train_dyna():
     plt.title(f"Dyna-Q CartPole (N_DYNA={N_DYNA})")
     plt.legend()
     plt.tight_layout()
-    plt.savefig(f"dynaq_curve_{N_DYNA}.png")
+    plt.savefig(os.path.join(PLOTS_CREATE_DIR, f"dynaq_curve_cl_correction_{N_DYNA}.png"))
     plt.show()
-    torch.save(qnet.state_dict(), f"dynaq_agent_{N_DYNA}.pth")
+    torch.save(qnet.state_dict(), os.path.join(PLOTS_CREATE_DIR, f"dynaq_agent_cl_correction_{N_DYNA}.pth"))
     print("Script Dyna-Q terminé.")
 
     # Evaluate greedy

@@ -1,0 +1,40 @@
+(base) nouhailanokry@MBP-de-nouhaila Projet %     python dyna_q_eval.py --checkpoint CREATEAGENT_plots/dynaq_agent_cl_correction_10.pth --episodes 200
+
+Évaluation du modèle clean : CREATEAGENT_plots/dynaq_agent_cl_correction_10.pth
+
+Résultats sur 200 épisodes greedy clean :
+  Moyenne : 498.71
+  Écart-type : 18.20
+  Min / Max : 242.0 / 500.0
+2026-05-25 21:45:28.714 python[85714:3906073] +[IMKClient subclass]: chose IMKClient_Modern
+2026-05-25 21:45:28.714 python[85714:3906073] +[IMKInputSession subclass]: chose IMKInputSession_Modern
+Figure sauvegardée → scores_normal_dynaq_agent_cl_correction_10.png
+Résumé texte sauvegardé → eval_dynaq_agent_cl_correction_10.txt
+Évaluation du modèle clean : CREATEAGENT_plots/dynaq_agent_cl_correction_10.pth
+
+Résultats sur 200 épisodes greedy clean :
+  Moyenne : 498.73
+  Écart-type : 17.92
+  Min / Max : 246.0 / 500.0
+Figure sauvegardée → scores_normal_dynaq_agent_cl_correction_10.png
+Résumé texte sauvegardé → eval_dynaq_agent_cl_correction_10.txt
+Évaluation du modèle  avec noise : CREATEAGENT_plots/dynaq_agent_cl_correction_10.pth
+
+Résultats sur 200 épisodes greedy noisy :
+  Moyenne : 498.69
+  Écart-type : 18.55
+  Min / Max : 237.0 / 500.0
+Figure sauvegardée → scores_noisy_dynaq_agent_cl_correction_10.png
+Résumé texte sauvegardé → eval_dynaq_agent_cl_correction_10.txt
+
+Clean evaluation
+Mean: 498.73
+Std: 17.92
+Min: 246.0
+Max: 500.0
+
+Noisy evaluation
+Mean: 498.69
+Std: 18.55
+Min: 237.0
+Max: 500.0

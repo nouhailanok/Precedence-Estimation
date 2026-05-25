@@ -21,7 +21,11 @@ ENV_NAME         = "CartPole-v1"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 WORLD_MODEL_PATH = os.path.join(BASE_DIR, "checkpoints_compare/Tiny_seed0.pth")
 WORLD_MODEL_STATS= "cartpole_data_mixed_policy.npz"
-N_DYNA_LIST      = [0, 10]    # DQN pur / Dyna-Q  (ajoute p.ex [0,1,5,10])
+# === CONFIG
+PLOTS_ABLATION_DIR = os.path.join(BASE_DIR, "ABLATIONDyna_Q_plots")
+os.makedirs(PLOTS_ABLATION_DIR, exist_ok=True)
+
+N_DYNA_LIST      = [0,5, 10]    # DQN pur / Dyna-Q  (ajoute p.ex [0,1,5,10])
 N_SEEDS          = 3      # Runs par config pour moyenne/robustesse
 N_EPISODES       = 300
 MAX_STEPS_PER_EP = 500
@@ -259,7 +263,7 @@ if __name__ == "__main__":
     plt.legend()
     plt.grid(alpha=0.3)
     plt.tight_layout()
-    plt.savefig("abl_dynaq_dqn_learning_curve.png", dpi=130)
+    plt.savefig(os.path.join(PLOTS_ABLATION_DIR,"abl_dynaq_dqn_learning_curve.png"), dpi=130)
     plt.show()
 
     # Résumé ablation

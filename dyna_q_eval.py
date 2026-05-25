@@ -7,6 +7,9 @@ dyna_q_eval.py — Évaluation d'un agent DQN/Dyna‑Q entraîné sur CartPole
 
 Usage :
     python dyna_q_eval.py --checkpoint dynaq_agent_10.pth --episodes 50
+    python dyna_q_eval.py --checkpoint CREATEAGENT_plots/dynaq_agent_cl_correction_10.pth --episodes 200
+    
+
 """
 
 import numpy as np
@@ -17,6 +20,12 @@ import argparse
 import matplotlib.pyplot as plt
 import os
 import random
+
+# === CONFIG
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PLOTS_EVAL_AG_DIR = os.path.join(BASE_DIR, "EVALDyna_Q_plots")
+os.makedirs(PLOTS_EVAL_AG_DIR, exist_ok=True)
+
 
 
 # ==== AGENT ARCHI ====
@@ -79,7 +88,7 @@ def evaluate_agent(checkpoint_path, env_name="CartPole-v1", n_episodes=50, seed_
     plt.grid(alpha=0.3)
     fname = f"scores_normal_{os.path.splitext(os.path.basename(checkpoint_path))[0]}.png"
     plt.tight_layout()
-    plt.savefig(fname, dpi=120)
+    plt.savefig(os.path.join(PLOTS_EVAL_AG_DIR, fname), dpi=120)
     plt.show()
     print(f"Figure sauvegardée → {fname}")
 
@@ -144,7 +153,7 @@ def evaluate_agent_noisy(checkpoint_path, env_name="CartPole-v1", n_episodes=50,
     plt.grid(alpha=0.3)
     fname = f"scores_noisy_{os.path.splitext(os.path.basename(checkpoint_path))[0]}.png"
     plt.tight_layout()
-    plt.savefig(fname, dpi=120)
+    plt.savefig(os.path.join(PLOTS_EVAL_AG_DIR, fname), dpi=120)
     plt.show()
     print(f"Figure sauvegardée → {fname}")
 

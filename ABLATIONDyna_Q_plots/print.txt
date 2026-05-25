@@ -1,0 +1,70 @@
+
+[Running] python -u "/Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/dyna_q_agent.py"
+World Model chargé : Δs (frozen), mean/std: [[-0.309072   -0.10243439 -0.01121698 -0.03720811]] [[0.8527525  0.7538069  0.08824847 0.537342  ]]
+Ep 010  R=33.0  MeanR25=21.40  eps=0.951 | Buffer real/fake: 12.5% réal.
+Ep 020  R=37.0  MeanR25=21.40  eps=0.905 | Buffer real/fake: 10.5% réal.
+Ep 030  R=11.0  MeanR25=20.52  eps=0.860 | Buffer real/fake: 10.0% réal.
+Ep 040  R=50.0  MeanR25=20.56  eps=0.818 | Buffer real/fake: 9.8% réal.
+Ep 050  R=26.0  MeanR25=21.64  eps=0.778 | Buffer real/fake: 9.6% réal.
+Ep 060  R=45.0  MeanR25=25.52  eps=0.740 | Buffer real/fake: 9.5% réal.
+Ep 070  R=17.0  MeanR25=28.24  eps=0.704 | Buffer real/fake: 9.4% réal.
+Ep 080  R=17.0  MeanR25=31.56  eps=0.670 | Buffer real/fake: 9.4% réal.
+Ep 090  R=59.0  MeanR25=45.96  eps=0.637 | Buffer real/fake: 9.3% réal.
+Ep 100  R=44.0  MeanR25=64.32  eps=0.606 | Buffer real/fake: 9.2% réal.
+Ep 110  R=125.0  MeanR25=76.64  eps=0.576 | Buffer real/fake: 9.2% réal.
+Ep 120  R=54.0  MeanR25=76.68  eps=0.548 | Buffer real/fake: 9.2% réal.
+Ep 130  R=61.0  MeanR25=72.36  eps=0.521 | Buffer real/fake: 9.2% réal.
+Ep 140  R=58.0  MeanR25=79.60  eps=0.496 | Buffer real/fake: 9.2% réal.
+Ep 150  R=167.0  MeanR25=87.64  eps=0.471 | Buffer real/fake: 9.2% réal.
+Ep 160  R=181.0  MeanR25=106.56  eps=0.448 | Buffer real/fake: 9.2% réal.
+Ep 170  R=94.0  MeanR25=113.20  eps=0.427 | Buffer real/fake: 9.1% réal.
+Ep 180  R=73.0  MeanR25=108.20  eps=0.406 | Buffer real/fake: 9.1% réal.
+Ep 190  R=152.0  MeanR25=132.96  eps=0.386 | Buffer real/fake: 9.1% réal.
+Ep 200  R=164.0  MeanR25=139.04  eps=0.367 | Buffer real/fake: 9.1% réal.
+Ep 210  R=17.0  MeanR25=154.00  eps=0.349 | Buffer real/fake: 9.1% réal.
+Ep 220  R=157.0  MeanR25=136.44  eps=0.332 | Buffer real/fake: 9.1% réal.
+Ep 230  R=41.0  MeanR25=140.24  eps=0.316 | Buffer real/fake: 9.1% réal.
+Ep 240  R=292.0  MeanR25=181.08  eps=0.300 | Buffer real/fake: 9.1% réal.
+Ep 250  R=197.0  MeanR25=194.28  eps=0.286 | Buffer real/fake: 9.1% réal.
+Ep 260  R=188.0  MeanR25=185.84  eps=0.272 | Buffer real/fake: 9.1% réal.
+Ep 270  R=188.0  MeanR25=176.16  eps=0.258 | Buffer real/fake: 9.1% réal.
+Ep 280  R=203.0  MeanR25=172.28  eps=0.246 | Buffer real/fake: 9.1% réal.
+Ep 290  R=165.0  MeanR25=194.80  eps=0.234 | Buffer real/fake: 9.1% réal.
+Ep 300  R=262.0  MeanR25=223.04  eps=0.222 | Buffer real/fake: 9.1% réal.
+Ep 310  R=500.0  MeanR25=269.16  eps=0.211 | Buffer real/fake: 9.1% réal.
+Ep 320  R=500.0  MeanR25=342.80  eps=0.201 | Buffer real/fake: 9.1% réal.
+Ep 330  R=266.0  MeanR25=362.48  eps=0.191 | Buffer real/fake: 9.1% réal.
+Ep 340  R=500.0  MeanR25=316.84  eps=0.182 | Buffer real/fake: 9.1% réal.
+Ep 350  R=500.0  MeanR25=342.16  eps=0.173 | Buffer real/fake: 9.1% réal.
+Ep 360  R=143.0  MeanR25=417.36  eps=0.165 | Buffer real/fake: 9.1% réal.
+Ep 370  R=500.0  MeanR25=429.04  eps=0.157 | Buffer real/fake: 9.1% réal.
+Ep 380  R=500.0  MeanR25=431.36  eps=0.149 | Buffer real/fake: 9.1% réal.
+Ep 390  R=500.0  MeanR25=424.20  eps=0.142 | Buffer real/fake: 9.1% réal.
+Ep 400  R=500.0  MeanR25=426.48  eps=0.135 | Buffer real/fake: 9.1% réal.
+2026-05-25 21:37:59.475 python[84692:3898492] +[IMKClient subclass]: chose IMKClient_Modern
+2026-05-25 21:37:59.475 python[84692:3898492] +[IMKInputSession subclass]: chose IMKInputSession_Modern
+Script Dyna-Q terminé.
+Reward final agent greedy = 500.0
+
+[Done] exited with code=0 in 118.018 seconds
+
+[Running] python -u "/Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/dyna_q_ablation.py"
+------  N_DYNA = 0 ------
+    Seed 0: Final greedy test reward = 431.0
+    Seed 1: Final greedy test reward = 186.0
+    Seed 2: Final greedy test reward = 239.0
+Résultat NDYNA=0: final mean25=249.7 | greedy test=285.3±105.2
+------  N_DYNA = 10 ------
+    Seed 0: Final greedy test reward = 500.0
+    Seed 1: Final greedy test reward = 333.0
+    Seed 2: Final greedy test reward = 224.0
+Résultat NDYNA=10: final mean25=310.4 | greedy test=352.3±113.5
+2026-05-25 21:42:01.558 python[84761:3900120] +[IMKClient subclass]: chose IMKClient_Modern
+2026-05-25 21:42:01.558 python[84761:3900120] +[IMKInputSession subclass]: chose IMKInputSession_Modern
+
+Résumé ablation Dyna-Q/DQN :
+DQN         : Final greedy test mean25=249.71 | Greedy test reward = 285.3±105.2
+Dyna-Q (10) : Final greedy test mean25=310.37 | Greedy test reward = 352.3±113.5
+Courbe sauvegardée → abl_dynaq_dqn_learning_curve.png
+
+[Done] exited with code=0 in 235.36 seconds
