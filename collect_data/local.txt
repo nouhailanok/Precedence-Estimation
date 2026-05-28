@@ -1,0 +1,97 @@
+(base) nouhailanokry@MBP-de-nouhaila Projet % python ./collect_data/data_collect_general.py --env CartPole-v1 --force
+
+[COLLECT] CartPole-v1
+  Steps=100000 | random_ratio=60% | heuristic=oui
+  obs_dim=4 | n_actions=2
+
+   10000/100000 steps | 91 épisodes | avg_ret(20ep)=96.8
+   20000/100000 steps | 207 épisodes | avg_ret(20ep)=115.4
+   30000/100000 steps | 308 épisodes | avg_ret(20ep)=87.8
+   40000/100000 steps | 413 épisodes | avg_ret(20ep)=84.8
+   50000/100000 steps | 526 épisodes | avg_ret(20ep)=109.2
+   60000/100000 steps | 630 épisodes | avg_ret(20ep)=92.3
+   70000/100000 steps | 731 épisodes | avg_ret(20ep)=94.7
+   80000/100000 steps | 838 épisodes | avg_ret(20ep)=92.5
+   90000/100000 steps | 951 épisodes | avg_ret(20ep)=85.6
+  100000/100000 steps | 1062 épisodes | avg_ret(20ep)=88.0
+
+[COLLECT] Terminé.
+  Total épisodes : 1062
+  Return moyen   : 94.12 ± 75.88
+  Return max     : 500.00
+
+[SAVE] Dataset sauvegardé → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/collect_data/data/data_CartPole-v1.npz
+  Taille train : 100,000 transitions
+  mean   : [ 0.0099  0.006  -0.0006 -0.003 ]
+  std    : [0.5106 0.5319 0.0673 0.5421]
+
+Pour utiliser les données dans world_model.py :
+  python world_model.py --env CartPole-v1 --config 3 --data data/data_CartPole-v1.npz
+
+
+
+
+
+(base) nouhailanokry@MBP-de-nouhaila Projet % python ./collect_data/data_collect_general.py --env MountainCar-v0  --force
+
+[COLLECT] MountainCar-v0
+  Steps=100000 | random_ratio=50% | heuristic=oui
+  obs_dim=2 | n_actions=3
+
+   10000/100000 steps | 52 épisodes | avg_ret(20ep)=-196.3 | goals=80
+   20000/100000 steps | 104 épisodes | avg_ret(20ep)=-192.3 | goals=155
+   30000/100000 steps | 156 épisodes | avg_ret(20ep)=-190.8 | goals=236
+   40000/100000 steps | 209 épisodes | avg_ret(20ep)=-190.5 | goals=325
+   50000/100000 steps | 260 épisodes | avg_ret(20ep)=-198.7 | goals=392
+   60000/100000 steps | 313 épisodes | avg_ret(20ep)=-188.6 | goals=471
+   70000/100000 steps | 366 épisodes | avg_ret(20ep)=-187.6 | goals=562
+   80000/100000 steps | 419 épisodes | avg_ret(20ep)=-187.2 | goals=660
+   90000/100000 steps | 472 épisodes | avg_ret(20ep)=-191.9 | goals=775
+  100000/100000 steps | 524 épisodes | avg_ret(20ep)=-189.8 | goals=850
+
+[COLLECT] Terminé.
+  Total épisodes : 524
+  Return moyen   : -190.84 ± 13.89
+  Return max     : -134.00
+  Steps près du goal (pos≥0.45) : 850
+
+[SAVE] Dataset sauvegardé → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/collect_data/data/data_MountainCar-v0.npz
+  Taille train : 100,000 transitions
+  mean   : [-0.4855  0.0029]
+  std    : [0.3711 0.0254]
+
+Pour utiliser les données dans world_model.py :
+  python world_model.py --env CartPole-v1 --config 3 --data data/data_CartPole-v1.npz
+
+
+
+
+(base) nouhailanokry@MBP-de-nouhaila Projet % python ./collect_data/data_collect_general.py --env LunarLander-v3 --force
+
+[COLLECT] LunarLander-v3
+  Steps=100000 | random_ratio=60% | heuristic=oui
+  obs_dim=8 | n_actions=4
+
+   10000/100000 steps | 87 épisodes | avg_ret(20ep)=-169.0
+   20000/100000 steps | 168 épisodes | avg_ret(20ep)=-128.1
+   30000/100000 steps | 248 épisodes | avg_ret(20ep)=-89.4
+   40000/100000 steps | 332 épisodes | avg_ret(20ep)=-111.8
+   50000/100000 steps | 414 épisodes | avg_ret(20ep)=-144.0
+   60000/100000 steps | 495 épisodes | avg_ret(20ep)=-112.5
+   70000/100000 steps | 572 épisodes | avg_ret(20ep)=-133.2
+   80000/100000 steps | 648 épisodes | avg_ret(20ep)=-138.0
+   90000/100000 steps | 731 épisodes | avg_ret(20ep)=-121.9
+  100000/100000 steps | 815 épisodes | avg_ret(20ep)=-126.0
+
+[COLLECT] Terminé.
+  Total épisodes : 815
+  Return moyen   : -125.62 ± 92.38
+  Return max     : 113.36
+
+[SAVE] Dataset sauvegardé → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/collect_data/data/data_LunarLander-v3.npz
+  Taille train : 100,000 transitions
+  mean   : [ 0.0071  0.8502  0.0111 -0.5128 -0.0037 -0.0011  0.0282  0.0307]
+  std    : [0.3086 0.46   0.5396 0.2833 0.3775 0.3213 0.1656 0.1724]
+
+Pour utiliser les données dans world_model.py :
+  python world_model.py --env CartPole-v1 --config 3 --data data/data_CartPole-v1.npz
