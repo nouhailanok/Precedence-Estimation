@@ -1,0 +1,467 @@
+(base) nouhailanokry@MBP-de-nouhaila Projet %   python world_model/world_model2.py --env CartPole-v1 --config 1 --data collect_data/data/data_CartPole-v1.npz
+
+
+============================================================
+  WorldModel | env=CartPole-v1 | config=1
+  device=cpu | hidden=64 | epochs=200
+============================================================
+
+[DATA] Chargé via numpy.load()
+[NORM] mean = [ 0.0099  0.006  -0.0006 -0.003 ]
+[NORM] std  = [0.5106 0.5319 0.0673 0.5421]
+
+[DATA] Config 1 | train : 70,000 samples
+[DATA] Config 1 | val   : 10,000 samples
+[DATA] Config 1 | test  : 20,000 samples
+
+[WM] train=70,000 | val=10,000 | test=20,000
+
+[WM] Paramètres : 9,028
+
+  Epoch   1/200 | train=0.103096 | val=0.001146 | best_val=0.001146 | lr=1.0e-03
+  Epoch   5/200 | train=0.000270 | val=0.000230 | best_val=0.000230 | lr=1.0e-03
+  Epoch  10/200 | train=0.000129 | val=0.000232 | best_val=0.000163 | lr=1.0e-03
+  Epoch  15/200 | train=0.000081 | val=0.000070 | best_val=0.000070 | lr=5.0e-04
+  Epoch  20/200 | train=0.000031 | val=0.000046 | best_val=0.000026 | lr=5.0e-04
+  Epoch  25/200 | train=0.000028 | val=0.000023 | best_val=0.000018 | lr=5.0e-04
+  Epoch  30/200 | train=0.000018 | val=0.000010 | best_val=0.000010 | lr=2.5e-04
+  Epoch  35/200 | train=0.000010 | val=0.000012 | best_val=0.000009 | lr=2.5e-04
+  Epoch  40/200 | train=0.000009 | val=0.000009 | best_val=0.000007 | lr=2.5e-04
+  Epoch  45/200 | train=0.000008 | val=0.000008 | best_val=0.000007 | lr=1.3e-04
+  Epoch  50/200 | train=0.000005 | val=0.000005 | best_val=0.000005 | lr=1.3e-04
+
+[WM] Early stopping à l'epoch 54 (best_val=0.000004)
+[TEST] MSE=0.000004 | MAE=0.001415
+[EVAL] MAE (espace original, test) : 0.00059 ± 0.00037  max=0.00351
+
+[WM] Sauvegardé → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/world_model/checkpoints/wm_CartPole-v1_config1.pth
+(base) nouhailanokry@MBP-de-nouhaila Projet %   python world_model/world_model2.py --env CartPole-v1 --config 2 --data collect_data/data/data_CartPole-v1.npz
+
+
+============================================================
+  WorldModel | env=CartPole-v1 | config=2 | n_step=3
+  device=cpu | hidden=64 | epochs=200
+============================================================
+
+[DATA] Chargé via numpy.load()
+[CONFIG2] Collecte de données séquentielles fraîches (splits shufflés du .npz incompatibles avec multistep).
+[COLLECT] Collecte séquentielle pour Config 2 (30000 steps, env=CartPole-v1)
+[DATA] Config 2 (n=3) : 27,305 séquences valides / 29,997 (91.0% conservées, 2,692 rejetées)
+
+[WM] train=19,113 | val=4,096 | test=4,096
+
+[WM] Paramètres : 9,284
+
+  Epoch   1/200 | train=0.636350 | val=0.032263 | best_val=0.032263 | lr=1.0e-03
+  Epoch   5/200 | train=0.002614 | val=0.002393 | best_val=0.002393 | lr=1.0e-03
+  Epoch  10/200 | train=0.001197 | val=0.001186 | best_val=0.001186 | lr=1.0e-03
+  Epoch  15/200 | train=0.000577 | val=0.000552 | best_val=0.000552 | lr=5.0e-04
+  Epoch  20/200 | train=0.000381 | val=0.000384 | best_val=0.000384 | lr=5.0e-04
+  Epoch  25/200 | train=0.000302 | val=0.000313 | best_val=0.000313 | lr=5.0e-04
+  Epoch  30/200 | train=0.000257 | val=0.000274 | best_val=0.000274 | lr=2.5e-04
+  Epoch  35/200 | train=0.000215 | val=0.000238 | best_val=0.000233 | lr=2.5e-04
+  Epoch  40/200 | train=0.000197 | val=0.000209 | best_val=0.000207 | lr=2.5e-04
+  Epoch  45/200 | train=0.000177 | val=0.000180 | best_val=0.000180 | lr=1.3e-04
+  Epoch  50/200 | train=0.000163 | val=0.000172 | best_val=0.000172 | lr=1.3e-04
+  Epoch  55/200 | train=0.000151 | val=0.000159 | best_val=0.000159 | lr=1.3e-04
+  Epoch  60/200 | train=0.000142 | val=0.000148 | best_val=0.000147 | lr=6.3e-05
+  Epoch  65/200 | train=0.000134 | val=0.000140 | best_val=0.000140 | lr=6.3e-05
+  Epoch  70/200 | train=0.000129 | val=0.000135 | best_val=0.000135 | lr=6.3e-05
+  Epoch  75/200 | train=0.000122 | val=0.000128 | best_val=0.000128 | lr=3.1e-05
+  Epoch  80/200 | train=0.000117 | val=0.000124 | best_val=0.000124 | lr=3.1e-05
+  Epoch  85/200 | train=0.000115 | val=0.000121 | best_val=0.000121 | lr=3.1e-05
+  Epoch  90/200 | train=0.000112 | val=0.000117 | best_val=0.000117 | lr=1.6e-05
+  Epoch  95/200 | train=0.000109 | val=0.000115 | best_val=0.000115 | lr=1.6e-05
+  Epoch 100/200 | train=0.000107 | val=0.000112 | best_val=0.000112 | lr=1.6e-05
+  Epoch 105/200 | train=0.000105 | val=0.000111 | best_val=0.000111 | lr=7.8e-06
+  Epoch 110/200 | train=0.000104 | val=0.000109 | best_val=0.000109 | lr=7.8e-06
+  Epoch 115/200 | train=0.000103 | val=0.000109 | best_val=0.000109 | lr=7.8e-06
+  Epoch 120/200 | train=0.000102 | val=0.000107 | best_val=0.000107 | lr=3.9e-06
+  Epoch 125/200 | train=0.000101 | val=0.000106 | best_val=0.000106 | lr=3.9e-06
+
+[WM] Early stopping à l'epoch 126 (best_val=0.000106)
+[TEST] MSE=0.000311 | MAE=0.008311
+[WM] Sauvegardé → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/world_model/checkpoints/wm_CartPole-v1_config2_n3.pth
+(base) nouhailanokry@MBP-de-nouhaila Projet %   python world_model/world_model2.py --env CartPole-v1 --config 3 --data collect_data/data/data_CartPole-v1.npz
+
+============================================================
+  WorldModel | env=CartPole-v1 | config=3
+  device=cpu | hidden=64 | epochs=200
+============================================================
+
+[DATA] Chargé via numpy.load()
+[NORM] mean = [ 0.0099  0.006  -0.0006 -0.003 ]
+[NORM] std  = [0.5106 0.5319 0.0673 0.5421]
+
+[DATA] Config 3 | train : 70,000 samples
+[DATA] Config 3 | val   : 10,000 samples
+[DATA] Config 3 | test  : 20,000 samples
+
+[WM] train=70,000 | val=10,000 | test=20,000
+
+[WM] Paramètres : 9,028
+
+  Epoch   1/200 | train=0.007593 | val=0.000075 | best_val=0.000075 | lr=1.0e-03
+  Epoch   5/200 | train=0.000016 | val=0.000015 | best_val=0.000015 | lr=1.0e-03
+  Epoch  10/200 | train=0.000008 | val=0.000009 | best_val=0.000009 | lr=1.0e-03
+  Epoch  15/200 | train=0.000005 | val=0.000007 | best_val=0.000004 | lr=5.0e-04
+  Epoch  20/200 | train=0.000003 | val=0.000002 | best_val=0.000002 | lr=5.0e-04
+  Epoch  25/200 | train=0.000002 | val=0.000003 | best_val=0.000002 | lr=5.0e-04
+  Epoch  30/200 | train=0.000002 | val=0.000002 | best_val=0.000001 | lr=2.5e-04
+
+[WM] Early stopping à l'epoch 32 (best_val=0.000001)
+[TEST] MSE=0.000001 | MAE=0.000804
+[EVAL] MAE (espace original, test) : 0.00033 ± 0.00026  max=0.00159
+
+[WM] Sauvegardé → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/world_model/checkpoints/wm_CartPole-v1_config3.pth
+(base) nouhailanokry@MBP-de-nouhaila Projet % 
+
+
+
+
+POUR LE MOUNTAION CAR 
+
+(base) nouhailanokry@MBP-de-nouhaila Projet %     python world_model/world_model2.py --env MountainCar-v0 --config 1 --data collect_data/data/data_MountainCar-v0.npz
+
+============================================================
+  WorldModel | env=MountainCar-v0 | config=1
+  device=cpu | hidden=64 | epochs=200
+============================================================
+
+[DATA] Chargé via numpy.load()
+[NORM] mean = [-0.4855  0.0029]
+[NORM] std  = [0.3711 0.0254]
+
+[DATA] Config 1 | train : 70,000 samples
+[DATA] Config 1 | val   : 10,000 samples
+[DATA] Config 1 | test  : 20,000 samples
+
+[WM] train=70,000 | val=10,000 | test=20,000
+
+[WM] Paramètres : 8,834
+
+  Epoch   1/200 | train=0.082598 | val=0.001337 | best_val=0.001337 | lr=1.0e-03
+  Epoch   5/200 | train=0.001339 | val=0.001056 | best_val=0.001027 | lr=1.0e-03
+  Epoch  10/200 | train=0.001193 | val=0.000871 | best_val=0.000871 | lr=1.0e-03
+  Epoch  15/200 | train=0.001025 | val=0.000721 | best_val=0.000721 | lr=5.0e-04
+  Epoch  20/200 | train=0.000845 | val=0.000639 | best_val=0.000608 | lr=5.0e-04
+  Epoch  25/200 | train=0.000766 | val=0.000515 | best_val=0.000515 | lr=5.0e-04
+  Epoch  30/200 | train=0.000657 | val=0.000459 | best_val=0.000459 | lr=2.5e-04
+  Epoch  35/200 | train=0.000568 | val=0.000365 | best_val=0.000365 | lr=2.5e-04
+  Epoch  40/200 | train=0.000509 | val=0.000357 | best_val=0.000348 | lr=2.5e-04
+  Epoch  45/200 | train=0.000461 | val=0.000355 | best_val=0.000325 | lr=1.3e-04
+  Epoch  50/200 | train=0.000427 | val=0.000291 | best_val=0.000279 | lr=1.3e-04
+  Epoch  55/200 | train=0.000399 | val=0.000269 | best_val=0.000269 | lr=1.3e-04
+  Epoch  60/200 | train=0.000369 | val=0.000278 | best_val=0.000255 | lr=6.3e-05
+  Epoch  65/200 | train=0.000344 | val=0.000258 | best_val=0.000234 | lr=6.3e-05
+  Epoch  70/200 | train=0.000339 | val=0.000233 | best_val=0.000228 | lr=6.3e-05
+  Epoch  75/200 | train=0.000330 | val=0.000228 | best_val=0.000220 | lr=3.1e-05
+  Epoch  80/200 | train=0.000316 | val=0.000221 | best_val=0.000209 | lr=3.1e-05
+  Epoch  85/200 | train=0.000308 | val=0.000207 | best_val=0.000203 | lr=3.1e-05
+  Epoch  90/200 | train=0.000305 | val=0.000209 | best_val=0.000201 | lr=1.6e-05
+  Epoch  95/200 | train=0.000298 | val=0.000199 | best_val=0.000198 | lr=1.6e-05
+  Epoch 100/200 | train=0.000296 | val=0.000199 | best_val=0.000195 | lr=1.6e-05
+  Epoch 105/200 | train=0.000295 | val=0.000195 | best_val=0.000195 | lr=7.8e-06
+  Epoch 110/200 | train=0.000290 | val=0.000195 | best_val=0.000193 | lr=7.8e-06
+  Epoch 115/200 | train=0.000289 | val=0.000193 | best_val=0.000192 | lr=7.8e-06
+  Epoch 120/200 | train=0.000287 | val=0.000189 | best_val=0.000189 | lr=3.9e-06
+  Epoch 125/200 | train=0.000285 | val=0.000190 | best_val=0.000189 | lr=3.9e-06
+
+[WM] Early stopping à l'epoch 126 (best_val=0.000189)
+[TEST] MSE=0.000305 | MAE=0.003907
+[EVAL] MAE (espace original, test) : 0.00048 ± 0.00051  max=0.00629
+
+[WM] Sauvegardé → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/world_model/checkpoints/wm_MountainCar-v0_config1.pth
+
+
+(base) nouhailanokry@MBP-de-nouhaila Projet %   python world_model/world_model2.py --env MountainCar-v0 --config 2 --data collect_data/data/data_MountainCar-v0.npz
+
+============================================================
+  WorldModel | env=MountainCar-v0 | config=2 | n_step=3
+  device=cpu | hidden=64 | epochs=200
+============================================================
+
+[DATA] Chargé via numpy.load()
+[CONFIG2] Collecte de données séquentielles fraîches (splits shufflés du .npz incompatibles avec multistep).
+[COLLECT] Collecte séquentielle pour Config 2 (30000 steps, env=MountainCar-v0)
+[DATA] Config 2 (n=3) : 29,699 séquences valides / 29,997 (99.0% conservées, 298 rejetées)
+
+[WM] train=20,789 | val=4,455 | test=4,455
+
+[WM] Paramètres : 9,218
+
+  Epoch   1/200 | train=0.028026 | val=0.000944 | best_val=0.000944 | lr=1.0e-03
+  Epoch   5/200 | train=0.000057 | val=0.000063 | best_val=0.000063 | lr=1.0e-03
+  Epoch  10/200 | train=0.000027 | val=0.000031 | best_val=0.000031 | lr=1.0e-03
+  Epoch  15/200 | train=0.000022 | val=0.000029 | best_val=0.000023 | lr=5.0e-04
+  Epoch  20/200 | train=0.000010 | val=0.000015 | best_val=0.000015 | lr=5.0e-04
+  Epoch  25/200 | train=0.000009 | val=0.000014 | best_val=0.000014 | lr=5.0e-04
+  Epoch  30/200 | train=0.000010 | val=0.000020 | best_val=0.000012 | lr=2.5e-04
+  Epoch  35/200 | train=0.000006 | val=0.000010 | best_val=0.000010 | lr=2.5e-04
+  Epoch  40/200 | train=0.000006 | val=0.000009 | best_val=0.000009 | lr=2.5e-04
+  Epoch  45/200 | train=0.000006 | val=0.000010 | best_val=0.000009 | lr=1.3e-04
+
+[WM] Early stopping à l'epoch 48 (best_val=0.000008)
+[TEST] MSE=0.000013 | MAE=0.001774
+[WM] Sauvegardé → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/world_model/checkpoints/wm_MountainCar-v0_config2_n3.pth
+(base) nouhailanokry@MBP-de-nouhaila Projet %   python world_model/world_model2.py --env MountainCar-v0 --config 3 --data collect_data/data/data_MountainCar-v0.npz
+
+
+============================================================
+  WorldModel | env=MountainCar-v0 | config=3
+  device=cpu | hidden=64 | epochs=200
+============================================================
+
+[DATA] Chargé via numpy.load()
+[NORM] mean = [-0.4855  0.0029]
+[NORM] std  = [0.3711 0.0254]
+
+[DATA] Config 3 | train : 70,000 samples
+[DATA] Config 3 | val   : 10,000 samples
+[DATA] Config 3 | test  : 20,000 samples
+
+[WM] train=70,000 | val=10,000 | test=20,000
+
+[WM] Paramètres : 8,834
+
+  Epoch   1/200 | train=0.001729 | val=0.001075 | best_val=0.001075 | lr=1.0e-03
+  Epoch   5/200 | train=0.000886 | val=0.000588 | best_val=0.000588 | lr=1.0e-03
+  Epoch  10/200 | train=0.000541 | val=0.000374 | best_val=0.000312 | lr=1.0e-03
+  Epoch  15/200 | train=0.000384 | val=0.000362 | best_val=0.000212 | lr=5.0e-04
+  Epoch  20/200 | train=0.000256 | val=0.000174 | best_val=0.000132 | lr=5.0e-04
+  Epoch  25/200 | train=0.000249 | val=0.000129 | best_val=0.000129 | lr=5.0e-04
+  Epoch  30/200 | train=0.000252 | val=0.000144 | best_val=0.000120 | lr=2.5e-04
+  Epoch  35/200 | train=0.000220 | val=0.000109 | best_val=0.000093 | lr=2.5e-04
+  Epoch  40/200 | train=0.000171 | val=0.000091 | best_val=0.000091 | lr=2.5e-04
+  Epoch  45/200 | train=0.000145 | val=0.000086 | best_val=0.000086 | lr=1.3e-04
+  Epoch  50/200 | train=0.000162 | val=0.000087 | best_val=0.000077 | lr=1.3e-04
+  Epoch  55/200 | train=0.000142 | val=0.000075 | best_val=0.000075 | lr=1.3e-04
+  Epoch  60/200 | train=0.000132 | val=0.000138 | best_val=0.000068 | lr=6.3e-05
+  Epoch  65/200 | train=0.000115 | val=0.000075 | best_val=0.000065 | lr=6.3e-05
+  Epoch  70/200 | train=0.000120 | val=0.000071 | best_val=0.000065 | lr=6.3e-05
+  Epoch  75/200 | train=0.000112 | val=0.000072 | best_val=0.000062 | lr=3.1e-05
+  Epoch  80/200 | train=0.000104 | val=0.000070 | best_val=0.000062 | lr=3.1e-05
+
+[WM] Early stopping à l'epoch 80 (best_val=0.000062)
+[TEST] MSE=0.000121 | MAE=0.000960
+[EVAL] MAE (espace original, test) : 0.00009 ± 0.00011  max=0.00164
+
+[WM] Sauvegardé → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/world_model/checkpoints/wm_MountainCar-v0_config3.pth
+(base) nouhailanokry@MBP-de-nouhaila Projet %   python world_model/world_model2.py --env LunarLander-v3 --config 1 --data collect_data/data/data_LunarLander-v3.npz
+
+
+============================================================
+  WorldModel | env=LunarLander-v3 | config=1
+  device=cpu | hidden=64 | epochs=200
+============================================================
+
+[DATA] Chargé via numpy.load()
+[NORM] mean = [ 0.0071  0.8502  0.0111 -0.5128 -0.0037 -0.0011  0.0282  0.0307]
+[NORM] std  = [0.3086 0.46   0.5396 0.2833 0.3775 0.3213 0.1656 0.1724]
+
+[DATA] Config 1 | train : 70,000 samples
+[DATA] Config 1 | val   : 10,000 samples
+[DATA] Config 1 | test  : 20,000 samples
+
+[WM] train=70,000 | val=10,000 | test=20,000
+
+[WM] Paramètres : 9,672
+
+  Epoch   1/200 | train=0.297928 | val=0.136804 | best_val=0.136804 | lr=1.0e-03
+  Epoch   5/200 | train=0.127610 | val=0.123555 | best_val=0.121030 | lr=1.0e-03
+  Epoch  10/200 | train=0.121392 | val=0.113504 | best_val=0.112104 | lr=1.0e-03
+  Epoch  15/200 | train=0.118382 | val=0.108670 | best_val=0.108670 | lr=5.0e-04
+  Epoch  20/200 | train=0.113886 | val=0.109637 | best_val=0.106750 | lr=5.0e-04
+  Epoch  25/200 | train=0.112858 | val=0.108466 | best_val=0.106750 | lr=5.0e-04
+
+[WM] Early stopping à l'epoch 27 (best_val=0.106750)
+[TEST] MSE=0.111530 | MAE=0.064444
+[EVAL] MAE (espace original, test) : 0.01596 ± 0.03424  max=0.41117
+
+[WM] Sauvegardé → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/world_model/checkpoints/wm_LunarLander-v3_config1.pth
+
+
+(base) nouhailanokry@MBP-de-nouhaila Projet %   python world_model/world_model2.py --env LunarLander-v3 --config 2 --data collect_data/data/data_LunarLander-v3.npz
+
+
+============================================================
+  WorldModel | env=LunarLander-v3 | config=2 | n_step=3
+  device=cpu | hidden=64 | epochs=200
+============================================================
+
+[DATA] Chargé via numpy.load()
+[CONFIG2] Collecte de données séquentielles fraîches (splits shufflés du .npz incompatibles avec multistep).
+[COLLECT] Collecte séquentielle pour Config 2 (30000 steps, env=LunarLander-v3)
+[DATA] Config 2 (n=3) : 29,365 séquences valides / 29,997 (97.9% conservées, 632 rejetées)
+
+[WM] train=20,555 | val=4,405 | test=4,405
+
+[WM] Paramètres : 10,184
+
+  Epoch   1/200 | train=0.849717 | val=0.486334 | best_val=0.486334 | lr=1.0e-03
+  Epoch   5/200 | train=0.364005 | val=0.341275 | best_val=0.341275 | lr=1.0e-03
+  Epoch  10/200 | train=0.329630 | val=0.316414 | best_val=0.316414 | lr=1.0e-03
+  Epoch  15/200 | train=0.315705 | val=0.302605 | best_val=0.302490 | lr=5.0e-04
+  Epoch  20/200 | train=0.304266 | val=0.301763 | best_val=0.295717 | lr=5.0e-04
+  Epoch  25/200 | train=0.298979 | val=0.299248 | best_val=0.295717 | lr=5.0e-04
+  Epoch  30/200 | train=0.293898 | val=0.303969 | best_val=0.291867 | lr=2.5e-04
+  Epoch  35/200 | train=0.286729 | val=0.289341 | best_val=0.289341 | lr=2.5e-04
+  Epoch  40/200 | train=0.283338 | val=0.286998 | best_val=0.286998 | lr=2.5e-04
+  Epoch  45/200 | train=0.280879 | val=0.287408 | best_val=0.286998 | lr=1.3e-04
+  Epoch  50/200 | train=0.277393 | val=0.290258 | best_val=0.285429 | lr=1.3e-04
+  Epoch  55/200 | train=0.275768 | val=0.289196 | best_val=0.285429 | lr=1.3e-04
+
+[WM] Early stopping à l'epoch 55 (best_val=0.285429)
+[TEST] MSE=0.774838 | MAE=0.252144
+[WM] Sauvegardé → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/world_model/checkpoints/wm_LunarLander-v3_config2_n3.pth
+(base) nouhailanokry@MBP-de-nouhaila Projet % 
+
+
+(base) nouhailanokry@MBP-de-nouhaila Projet %   python world_model/world_model2.py --env LunarLander-v3 --config 3 --data collect_data/data/data_LunarLander-v3.npz
+
+
+============================================================
+  WorldModel | env=LunarLander-v3 | config=3
+  device=cpu | hidden=64 | epochs=200
+============================================================
+
+[DATA] Chargé via numpy.load()
+[NORM] mean = [ 0.0071  0.8502  0.0111 -0.5128 -0.0037 -0.0011  0.0282  0.0307]
+[NORM] std  = [0.3086 0.46   0.5396 0.2833 0.3775 0.3213 0.1656 0.1724]
+
+[DATA] Config 3 | train : 70,000 samples
+[DATA] Config 3 | val   : 10,000 samples
+[DATA] Config 3 | test  : 20,000 samples
+
+[WM] train=70,000 | val=10,000 | test=20,000
+
+[WM] Paramètres : 9,672
+
+  Epoch   1/200 | train=0.145100 | val=0.125957 | best_val=0.125957 | lr=1.0e-03
+  Epoch   5/200 | train=0.116982 | val=0.113586 | best_val=0.112118 | lr=1.0e-03
+  Epoch  10/200 | train=0.111439 | val=0.104925 | best_val=0.103751 | lr=1.0e-03
+  Epoch  15/200 | train=0.107919 | val=0.101411 | best_val=0.101411 | lr=5.0e-04
+  Epoch  20/200 | train=0.103149 | val=0.101711 | best_val=0.099562 | lr=5.0e-04
+  Epoch  25/200 | train=0.101508 | val=0.101134 | best_val=0.099183 | lr=5.0e-04
+  Epoch  30/200 | train=0.100025 | val=0.099215 | best_val=0.098299 | lr=2.5e-04
+  Epoch  35/200 | train=0.097533 | val=0.097761 | best_val=0.097761 | lr=2.5e-04
+  Epoch  40/200 | train=0.096621 | val=0.099522 | best_val=0.097646 | lr=2.5e-04
+  Epoch  45/200 | train=0.095927 | val=0.097905 | best_val=0.097588 | lr=1.3e-04
+  Epoch  50/200 | train=0.094417 | val=0.097720 | best_val=0.097293 | lr=1.3e-04
+  Epoch  55/200 | train=0.094069 | val=0.097721 | best_val=0.097293 | lr=1.3e-04
+
+[WM] Early stopping à l'epoch 57 (best_val=0.097293)
+[TEST] MSE=0.109359 | MAE=0.045453
+[EVAL] MAE (espace original, test) : 0.00974 ± 0.03067  max=0.35281
+
+[WM] Sauvegardé → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/world_model/checkpoints/wm_LunarLander-v3_config3.pth
+
+
+
+
+Pour LunuarLander-v3
+
+
+(base) nouhailanokry@MBP-de-nouhaila Projet %   python world_model/world_model2.py --env LunarLander-v3 --config 1 --data collect_data/data/data_LunarLander-v3.npz
+
+
+============================================================
+  WorldModel | env=LunarLander-v3 | config=1
+  device=cpu | hidden=64 | epochs=200
+============================================================
+
+[DATA] Chargé via numpy.load()
+[NORM] mean = [ 0.0071  0.8502  0.0111 -0.5128 -0.0037 -0.0011  0.0282  0.0307]
+[NORM] std  = [0.3086 0.46   0.5396 0.2833 0.3775 0.3213 0.1656 0.1724]
+
+[DATA] Config 1 | train : 70,000 samples
+[DATA] Config 1 | val   : 10,000 samples
+[DATA] Config 1 | test  : 20,000 samples
+
+[WM] train=70,000 | val=10,000 | test=20,000
+
+[WM] Paramètres : 9,672
+
+  Epoch   1/200 | train=0.297928 | val=0.136804 | best_val=0.136804 | lr=1.0e-03
+  Epoch   5/200 | train=0.127610 | val=0.123555 | best_val=0.121030 | lr=1.0e-03
+  Epoch  10/200 | train=0.121392 | val=0.113504 | best_val=0.112104 | lr=1.0e-03
+  Epoch  15/200 | train=0.118382 | val=0.108670 | best_val=0.108670 | lr=5.0e-04
+  Epoch  20/200 | train=0.113886 | val=0.109637 | best_val=0.106750 | lr=5.0e-04
+  Epoch  25/200 | train=0.112858 | val=0.108466 | best_val=0.106750 | lr=5.0e-04
+
+[WM] Early stopping à l'epoch 27 (best_val=0.106750)
+[TEST] MSE=0.111530 | MAE=0.064444
+[EVAL] MAE (espace original, test) : 0.01596 ± 0.03424  max=0.41117
+
+[WM] Sauvegardé → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/world_model/checkpoints/wm_LunarLander-v3_config1.pth
+(base) nouhailanokry@MBP-de-nouhaila Projet %   python world_model/world_model2.py --env LunarLander-v3 --config 3 --data collect_data/data/data_LunarLander-v3.npz
+
+
+============================================================
+  WorldModel | env=LunarLander-v3 | config=3
+  device=cpu | hidden=64 | epochs=200
+============================================================
+
+[DATA] Chargé via numpy.load()
+[NORM] mean = [ 0.0071  0.8502  0.0111 -0.5128 -0.0037 -0.0011  0.0282  0.0307]
+[NORM] std  = [0.3086 0.46   0.5396 0.2833 0.3775 0.3213 0.1656 0.1724]
+
+[DATA] Config 3 | train : 70,000 samples
+[DATA] Config 3 | val   : 10,000 samples
+[DATA] Config 3 | test  : 20,000 samples
+
+[WM] train=70,000 | val=10,000 | test=20,000
+
+[WM] Paramètres : 9,672
+
+  Epoch   1/200 | train=0.145100 | val=0.125957 | best_val=0.125957 | lr=1.0e-03
+  Epoch   5/200 | train=0.116982 | val=0.113586 | best_val=0.112118 | lr=1.0e-03
+  Epoch  10/200 | train=0.111439 | val=0.104925 | best_val=0.103751 | lr=1.0e-03
+  Epoch  15/200 | train=0.107919 | val=0.101411 | best_val=0.101411 | lr=5.0e-04
+  Epoch  20/200 | train=0.103149 | val=0.101711 | best_val=0.099562 | lr=5.0e-04
+  Epoch  25/200 | train=0.101508 | val=0.101134 | best_val=0.099183 | lr=5.0e-04
+  Epoch  30/200 | train=0.100025 | val=0.099215 | best_val=0.098299 | lr=2.5e-04
+  Epoch  35/200 | train=0.097533 | val=0.097761 | best_val=0.097761 | lr=2.5e-04
+  Epoch  40/200 | train=0.096621 | val=0.099522 | best_val=0.097646 | lr=2.5e-04
+  Epoch  45/200 | train=0.095927 | val=0.097905 | best_val=0.097588 | lr=1.3e-04
+  Epoch  50/200 | train=0.094417 | val=0.097720 | best_val=0.097293 | lr=1.3e-04
+  Epoch  55/200 | train=0.094069 | val=0.097721 | best_val=0.097293 | lr=1.3e-04
+
+[WM] Early stopping à l'epoch 57 (best_val=0.097293)
+[TEST] MSE=0.109359 | MAE=0.045453
+[EVAL] MAE (espace original, test) : 0.00974 ± 0.03067  max=0.35281
+
+[WM] Sauvegardé → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/world_model/checkpoints/wm_LunarLander-v3_config3.pth
+(base) nouhailanokry@MBP-de-nouhaila Projet %   python world_model/world_model2.py --env LunarLander-v3 --config 2 --data collect_data/data/data_LunarLander-v3.npz
+
+
+============================================================
+  WorldModel | env=LunarLander-v3 | config=2 | n_step=3
+  device=cpu | hidden=64 | epochs=200
+============================================================
+
+[DATA] Chargé via numpy.load()
+[CONFIG2] Collecte de données séquentielles fraîches (splits shufflés du .npz incompatibles avec multistep).
+[COLLECT] Collecte séquentielle pour Config 2 (30000 steps, env=LunarLander-v3)
+[DATA] Config 2 (n=3) : 29,365 séquences valides / 29,997 (97.9% conservées, 632 rejetées)
+
+[WM] train=20,555 | val=4,405 | test=4,405
+
+[WM] Paramètres : 10,184
+
+  Epoch   1/200 | train=0.849717 | val=0.486334 | best_val=0.486334 | lr=1.0e-03
+  Epoch   5/200 | train=0.364005 | val=0.341275 | best_val=0.341275 | lr=1.0e-03
+  Epoch  10/200 | train=0.329630 | val=0.316414 | best_val=0.316414 | lr=1.0e-03
+  Epoch  15/200 | train=0.315705 | val=0.302605 | best_val=0.302490 | lr=5.0e-04
+  Epoch  20/200 | train=0.304266 | val=0.301763 | best_val=0.295717 | lr=5.0e-04
+  Epoch  25/200 | train=0.298979 | val=0.299248 | best_val=0.295717 | lr=5.0e-04
+  Epoch  30/200 | train=0.293898 | val=0.303969 | best_val=0.291867 | lr=2.5e-04
+  Epoch  35/200 | train=0.286729 | val=0.289341 | best_val=0.289341 | lr=2.5e-04
+  Epoch  40/200 | train=0.283338 | val=0.286998 | best_val=0.286998 | lr=2.5e-04
+  Epoch  45/200 | train=0.280879 | val=0.287408 | best_val=0.286998 | lr=1.3e-04
+  Epoch  50/200 | train=0.277393 | val=0.290258 | best_val=0.285429 | lr=1.3e-04
+  Epoch  55/200 | train=0.275768 | val=0.289196 | best_val=0.285429 | lr=1.3e-04
+
+[WM] Early stopping à l'epoch 55 (best_val=0.285429)
+[TEST] MSE=0.774838 | MAE=0.252144
+[WM] Sauvegardé → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/world_model/checkpoints/wm_LunarLander-v3_config2_n3.pth
