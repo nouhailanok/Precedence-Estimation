@@ -1,0 +1,71 @@
+{
+    "env_name": "CliffWalking-v1",
+    "collection_date": "2026-06-01 16:30:52",
+    "total_steps": 100000,
+    "total_episodes": 26,
+    "n_steps": 5,
+    "trained_ratio": 0.6,
+    "seed": 42,
+    "state_type": "discrete",
+    "n_states": 48,
+    "state_dim_onehot": 48,
+    "grid_rows": 4,
+    "grid_cols": 12,
+    "start_state": 36,
+    "goal_state": 47,
+    "cliff_states": [
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46
+    ],
+    "action_dim": 4,
+    "action_labels": [
+        "up (0)",
+        "right (1)",
+        "down (2)",
+        "left (3)"
+    ],
+    "reward_step": -1,
+    "reward_cliff": -100,
+    "reward_optimal_episode": -13,
+    "normalization": {
+        "states": "one-hot (pas de z-score)",
+        "rewards": "z-score (mean/std from train only)",
+        "deltas": "NS_oh - S_oh (valeurs enti\u00e8res {-1,0,1})"
+    },
+    "split": {
+        "train": 0.7,
+        "val": 0.1,
+        "test": 0.2
+    },
+    "n_episodes": {
+        "train": 18,
+        "val": 2,
+        "test": 6
+    },
+    "n_steps_per_split": {
+        "train": 58743,
+        "val": 14810,
+        "test": 23835
+    },
+    "policy": "mixed (DQN \u03b5-greedy 60% + random 40%)",
+    "reward_stats": {
+        "mean": -37154.38461538462,
+        "std": 41167.883117674784,
+        "min": -165696.0,
+        "max": -1368.0
+    },
+    "files": [
+        "transitions.npz",
+        "sequences_n5.npz",
+        "deltas.npz",
+        "scaler.npz"
+    ]
+}

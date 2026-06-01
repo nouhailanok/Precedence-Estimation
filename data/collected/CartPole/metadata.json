@@ -1,0 +1,50 @@
+{
+    "env_name": "CartPole-v1",
+    "collection_date": "2026-06-01 13:34:21",
+    "total_steps": 100000,
+    "total_episodes": 3579,
+    "n_steps": 5,
+    "trained_ratio": 0.6,
+    "seed": 42,
+    "state_dim": 4,
+    "action_dim": 2,
+    "state_labels": [
+        "x (position)",
+        "\u1e8b (vitesse)",
+        "\u03b8 (angle)",
+        "\u03b8\u0307 (vit. ang.)"
+    ],
+    "action_labels": [
+        "gauche (0)",
+        "droite (1)"
+    ],
+    "split": {
+        "train": 0.7,
+        "val": 0.1,
+        "test": 0.2
+    },
+    "n_episodes": {
+        "train": 2505,
+        "val": 357,
+        "test": 717
+    },
+    "n_steps_per_split": {
+        "train": 70871,
+        "val": 9522,
+        "test": 19604
+    },
+    "normalization": "z-score (mean/std from train only)",
+    "policy": "mixed (DQN \u03b5-greedy + random)",
+    "reward_stats": {
+        "mean": 27.939927354009498,
+        "std": 27.604712295692273,
+        "min": 8.0,
+        "max": 443.0
+    },
+    "files": [
+        "transitions.npz",
+        "sequences_n5.npz",
+        "deltas.npz",
+        "scaler.npz"
+    ]
+}
