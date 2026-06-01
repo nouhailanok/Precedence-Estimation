@@ -1,279 +1,3 @@
-# # """
-# # ppo_agent.py — Pure PPO baseline for CartPole-v1
-# # ==================================================
-# # Vanilla PPO with NO world model and NO synthetic transitions.
-
-# # Output
-# # ------
-# #     PPO_plots/
-# #         ppo_curve.png
-# #         ppo_agent.pth
-# # """
-
-# # import os
-# # import random
-# # import numpy as np
-# # import torch
-# # import torch.nn as nn
-# # import torch.optim as optim
-# # import torch.nn.functional as F
-# # from torch.distributions import Categorical
-# # import matplotlib.pyplot as plt
-# # import gymnasium as gym
-
-# # # ─────────────────────────────────────────────
-# # # CONFIG  (keep identical to dyna_ppo_agent.py)
-# # # ─────────────────────────────────────────────
-# # BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
-# # ENV_NAME   = "CartPole-v1"
-# # PLOTS_DIR  = os.path.join(BASE_DIR, "PPO_plots")
-
-# # N_EPISODES   = 600
-# # MAX_STEPS    = 500
-# # ROLLOUT_LEN  = 2048     # Standard PPO rollout window for stable GAE estimation
-# # PPO_EPOCHS   = 10
-# # MINI_BATCH   = 64
-# # GAMMA        = 0.99
-# # GAE_LAMBDA   = 0.95
-# # CLIP_EPS     = 0.2
-# # ENT_COEF     = 0.01
-# # VF_COEF      = 0.5
-# # MAX_GRAD_NORM= 0.5
-# # LR           = 3e-4
-
-
-# # SEED         = 42
-# # N_ACTIONS    = 2
-# # STATE_DIM    = 4
-# # DEVICE       = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-# # os.makedirs(PLOTS_DIR, exist_ok=True)
-# # np.random.seed(SEED)
-# # random.seed(SEED)
-# # torch.manual_seed(SEED)
-
-
-# # # ─────────────────────────────────────────────
-# # # ACTOR-CRITIC
-# # # ─────────────────────────────────────────────
-# # class ActorCritic(nn.Module):
-# #     def __init__(self, obs_dim=STATE_DIM, n_act=N_ACTIONS, hidden=128): # Bumped hidden to 128
-# #         super().__init__()
-# #         self.shared = nn.Sequential(
-# #             nn.Linear(obs_dim, hidden), nn.Tanh(),
-# #             nn.Linear(hidden, hidden),  nn.Tanh(),
-# #         )
-# #         self.actor  = nn.Linear(hidden, n_act)
-# #         self.critic = nn.Linear(hidden, 1)
-
-# #     def forward(self, x):
-# #         h = self.shared(x)
-# #         return self.actor(h), self.critic(h).squeeze(-1)
-
-# #     def act(self, obs):
-# #         logits, value = self(obs)
-# #         dist   = Categorical(logits=logits)
-# #         action = dist.sample()
-# #         return action, dist.log_prob(action), dist.entropy(), value
-
-# #     def evaluate(self, obs, actions):
-# #         logits, value = self(obs)
-# #         dist      = Categorical(logits=logits)
-# #         log_probs = dist.log_prob(actions)
-# #         entropy   = dist.entropy()
-# #         return log_probs, entropy, value
-
-
-# # # ─────────────────────────────────────────────
-# # # ROLLOUT BUFFER
-# # # ─────────────────────────────────────────────
-# # class RolloutBuffer:
-# #     def __init__(self):
-# #         self.obs       = []
-# #         self.actions   = []
-# #         self.log_probs = []
-# #         self.rewards   = []
-# #         self.values    = []
-# #         self.dones     = []
-
-# #     def push(self, obs, action, log_prob, reward, value, done):
-# #         self.obs.append(obs)
-# #         self.actions.append(action)
-# #         self.log_probs.append(log_prob)
-# #         self.rewards.append(reward)
-# #         self.values.append(value)
-# #         self.dones.append(done)
-
-# #     def clear(self):
-# #         self.__init__()
-
-# #     def __len__(self):
-# #         return len(self.rewards)
-
-# #     def compute_returns_advantages(self, last_value, gamma=GAMMA, lam=GAE_LAMBDA):
-# #         rewards    = np.array(self.rewards, dtype=np.float32)
-# #         values     = np.array(self.values,  dtype=np.float32)
-# #         dones      = np.array(self.dones,   dtype=np.float32)
-# #         n          = len(rewards)
-# #         advantages = np.zeros(n, dtype=np.float32)
-# #         last_gae   = 0.0
-# #         for t in reversed(range(n)):
-# #             next_val  = last_value if t == n - 1 else values[t + 1]
-# #             next_done = dones[t]
-# #             delta     = rewards[t] + gamma * next_val * (1 - next_done) - values[t]
-# #             last_gae  = delta + gamma * lam * (1 - next_done) * last_gae
-# #             advantages[t] = last_gae
-# #         returns = advantages + values
-# #         return returns, advantages
-
-
-# # # ─────────────────────────────────────────────
-# # # PPO UPDATE
-# # # ─────────────────────────────────────────────
-# # def ppo_update(ac, optimizer, rollout, last_value):
-# #     returns, advantages = rollout.compute_returns_advantages(last_value)
-
-# #     obs_t  = torch.tensor(np.stack(rollout.obs),       dtype=torch.float32, device=DEVICE)
-# #     act_t  = torch.tensor(np.array(rollout.actions),   dtype=torch.int64,   device=DEVICE)
-# #     lp_old = torch.tensor(np.array(rollout.log_probs), dtype=torch.float32, device=DEVICE)
-# #     ret_t  = torch.tensor(returns,                     dtype=torch.float32, device=DEVICE)
-# #     adv_t  = torch.tensor(advantages,                  dtype=torch.float32, device=DEVICE)
-# #     adv_t  = (adv_t - adv_t.mean()) / (adv_t.std() + 1e-8)
-
-# #     n   = len(rollout)
-# #     idx = np.arange(n)
-
-# #     for _ in range(PPO_EPOCHS):
-# #         np.random.shuffle(idx)
-# #         for start in range(0, n, MINI_BATCH):
-# #             mb = idx[start: start + MINI_BATCH]
-# #             log_probs, entropy, values = ac.evaluate(obs_t[mb], act_t[mb])
-
-# #             ratio       = torch.exp(log_probs - lp_old[mb])
-# #             surr1       = ratio * adv_t[mb]
-# #             surr2       = torch.clamp(ratio, 1 - CLIP_EPS, 1 + CLIP_EPS) * adv_t[mb]
-# #             actor_loss  = -torch.min(surr1, surr2).mean()
-# #             critic_loss = F.mse_loss(values, ret_t[mb])
-# #             entropy_loss= -entropy.mean()
-
-# #             loss = actor_loss + VF_COEF * critic_loss + ENT_COEF * entropy_loss
-
-# #             optimizer.zero_grad()
-# #             loss.backward()
-# #             nn.utils.clip_grad_norm_(ac.parameters(), MAX_GRAD_NORM)
-# #             optimizer.step()
-
-
-# # # ─────────────────────────────────────────────
-# # # TRAINING LOOP
-# # # ─────────────────────────────────────────────
-# # def train_ppo():
-# #     env       = gym.make(ENV_NAME)
-# #     ac        = ActorCritic().to(DEVICE)
-# #     optimizer = optim.Adam(ac.parameters(), lr=LR, eps=1e-5)
-# #     rollout   = RolloutBuffer()
-
-# #     print(f"[PPO] Pure baseline")
-# #     print(f"      ROLLOUT_LEN={ROLLOUT_LEN} | PPO_EPOCHS={PPO_EPOCHS} | CLIP_EPS={CLIP_EPS}")
-
-# #     all_rewards, mean_rewards = [], []
-# #     ep_reward   = 0.0
-# #     ep_count    = 0
-# #     steps_total = 0
-
-# #     obs, _ = env.reset(seed=SEED)
-    
-# #     # Track the active live environment state across rollout blocks
-# #     env_is_done = False 
-
-# #     while ep_count < N_EPISODES:
-# #         rollout.clear()
-
-# #         # ── Collect ROLLOUT_LEN real steps ────────────────────────────────
-# #         for _ in range(ROLLOUT_LEN):
-# #             obs_t = torch.tensor(obs, dtype=torch.float32, device=DEVICE).unsqueeze(0)
-# #             with torch.no_grad():
-# #                 action, log_prob, _, value = ac.act(obs_t)
-# #             a  = int(action.item())
-# #             lp = log_prob.item()
-# #             v  = value.item()
-
-# #             next_obs, reward, terminated, truncated, _ = env.step(a)
-# #             env_is_done = terminated or truncated
-
-# #             rollout.push(obs, a, lp, float(reward), v, float(env_is_done))
-
-# #             ep_reward   += reward
-# #             steps_total += 1
-# #             obs          = next_obs
-
-# #             if env_is_done:
-# #                 all_rewards.append(ep_reward)
-# #                 mean_rewards.append(np.mean(all_rewards[-25:]))
-# #                 ep_count  += 1
-# #                 ep_reward  = 0.0
-# #                 obs, _     = env.reset(seed=SEED + ep_count)
-                
-# #                 # Keep tracking until rollout buffer fills up completely
-# #                 if ep_count >= N_EPISODES:
-# #                     break
-
-# #         # ── Bootstrap last value using the correct historical flag ────────
-# #         with torch.no_grad():
-# #             obs_t     = torch.tensor(obs, dtype=torch.float32, device=DEVICE).unsqueeze(0)
-# #             _, last_v = ac(obs_t)
-# #             # If the final step hit a terminal wall, bootstrap value is strictly 0.0
-# #             last_value= 0.0 if env_is_done else last_v.item()
-
-# #         # ── PPO update ────────────────────────────────────────────────────
-# #         ppo_update(ac, optimizer, rollout, last_value)
-
-# #         if ep_count > 0 and ep_count % 10 == 0:
-# #             # Avoid list slicing errors if training finishes early
-# #             current_mean = mean_rewards[-1] if len(mean_rewards) > 0 else 0.0
-# #             print(f"Ep {ep_count:03d}  "
-# #                   f"MeanR25={current_mean:.2f}  "
-# #                   f"Steps={steps_total}")
-
-# #     env.close()
-
-# #     # ── Plot ──────────────────────────────────────────────────────────────
-# #     plt.figure(figsize=(10, 4))
-# #     plt.plot(all_rewards,  alpha=0.4, label="Episode Return")
-# #     plt.plot(mean_rewards, linewidth=2, label="Mean-25")
-# #     plt.grid(alpha=0.3)
-# #     plt.xlabel("Episode")
-# #     plt.ylabel("Reward")
-# #     plt.title("Pure PPO — CartPole-v1 (no world model)")
-# #     plt.legend()
-# #     plt.tight_layout()
-# #     save_fig = os.path.join(PLOTS_DIR, "ppo_curve.png")
-# #     plt.savefig(save_fig, dpi=150)
-# #     plt.show()
-# #     print(f"[Plot] Saved → {save_fig}")
-
-# #     # ── Save weights ──────────────────────────────────────────────────────
-# #     save_pth = os.path.join(PLOTS_DIR, "ppo_agent.pth")
-# #     torch.save(ac.state_dict(), save_pth)
-# #     print(f"[Model] Saved → {save_pth}")
-
-# #     # ── Greedy evaluation ─────────────────────────────────────────────────
-# #     eval_env  = gym.make(ENV_NAME)
-# #     obs_e, _  = eval_env.reset(seed=SEED + 111)
-# #     total_r   = 0.0
-# #     done_e    = False
-# #     ac.eval()
-# #     while not done_e:
-# #         with torch.no_grad():
-# #             logits, _ = ac(torch.tensor(obs_e, dtype=torch.float32, device=DEVICE).unsqueeze(0))
-# #             a_e       = int(torch.argmax(logits).item())
-# #         obs_e, r_e, term_e, trunc_e, _ = eval_env.step(a_e)
-# #         done_e  = term_e or trunc_e
-# #         total_r += r_e
-# #     print(f"[Eval] Greedy episode reward = {total_r}")
-# #     eval_env.close()
-
-
 # # # ─────────────────────────────────────────────
 # # # ENTRY POINT
 # # # ─────────────────────────────────────────────
@@ -646,14 +370,14 @@
 """
 ppo_agent.py — Pure PPO baseline
 ==================================
-Supports CartPole-v1, LunarLander-v3, and MountainCar-v0.
+Supports CartPole-v1, LunarLander-v3, and CliffWalking-v1.
 No world model, no synthetic transitions.
 
 Usage
 -----
     python ppo_agent.py                          # default: CartPole-v1
     python ppo_agent.py --env LunarLander-v3
-    python ppo_agent.py --env MountainCar-v0
+    python ppo_agent.py --env CliffWalking-v1
 
 Design decisions:
   - Separate Actor and Critic networks (independent optimisers + LRs)
@@ -672,12 +396,11 @@ LunarLander-v3: shaped reward (±100 land/crash, leg contacts, velocity penaltie
                 Needs larger net, more steps/epoch, more epochs, and a lower
                 TARGET_KL (policy is more sensitive — tighter trust region).
 
-MountainCar-v0: reward = −1/step until pos ≥ 0.5, max 200 steps.
-                Purely sparse signal → almost no gradient without shaping.
-                Potential-based shaping: F(s,s') = γ·Φ(s') − Φ(s)
-                where Φ(s) = position + velocity².
-                Preserves the optimal policy (Ng et al. 1999).
-                Raw return is always plotted (never the shaped value).
+CliffWalking-v1: reward = −1/step, −100 if cliff, +0 at goal (terminal).
+                 Discrete obs (integer 0..47, row-major 4×12 grid).
+                 One-hot encoded to a 48-dim vector before feeding the network.
+                 Very sparse negative reward → needs long credit assignment (high lam).
+                 No potential-based shaping needed: −1/step is enough signal.
 
 Output
 ------
@@ -731,6 +454,9 @@ ENV_PROFILES = {
         "solve_threshold":         475,
         # ── reward shaping ──
         "shaped_reward":           False,
+        # ── observation ──
+        "discrete_obs":            False,
+        "n_states":                None,
     },
 
     "LunarLander-v3": {
@@ -758,17 +484,21 @@ ENV_PROFILES = {
         "solve_threshold":         200,          # gym: ≥200 mean-100
         # ── reward shaping ──
         "shaped_reward":           False,        # reward already dense enough
+        # ── observation ──
+        "discrete_obs":            False,
+        "n_states":                None,
     },
 
-    "MountainCar-v0": {
-        # Short episodes (max 200 steps) but extremely sparse reward.
-        # More epochs needed because each epoch contains many failed attempts
-        # before shaping guides the policy toward the goal.
-        # Larger lam (0.99) to propagate credit further back through the
-        # long sequences of −1 steps before a rare success.
+    "CliffWalking-v1": {
+        # 4×12 grid → 48 discrete states (integer obs), 4 actions (U/D/L/R).
+        # Obs is one-hot encoded → 48-dim float vector fed to the network.
+        # Reward: −1 per step, −100 if cliff, 0 at goal (episode ends).
+        # High lam (0.99): propagates the cliff penalty back through
+        # the trajectory so the agent learns to avoid the cliff edge.
+        # More epochs: sparse signal needs many rollouts to converge.
         # ── rollout ──
         "steps_per_epoch":         4_000,
-        "epochs":                  100,
+        "epochs":                  80,
         # ── network ──
         "hidden_sizes":            (64, 64),
         # ── optimisation ──
@@ -782,9 +512,12 @@ ENV_PROFILES = {
         "clip_ratio":              0.2,
         "target_kl":               0.01,
         # ── plotting ──
-        "solve_threshold":         -110,         # higher (less negative) = better
+        "solve_threshold":         -20,          # near-optimal path ≈ −13
         # ── reward shaping ──
-        "shaped_reward":           True,
+        "shaped_reward":           False,        # −1/step is sufficient signal
+        # ── observation ──
+        "discrete_obs":            True,         # obs is an int, not an array
+        "n_states":                48,           # 4×12 grid
     },
 }
 
@@ -792,27 +525,48 @@ SUPPORTED_ENVS = list(ENV_PROFILES.keys())
 
 
 # ─────────────────────────────────────────────
-# REWARD SHAPING
+# OBSERVATION PREPROCESSING
+# ─────────────────────────────────────────────
+def preprocess_obs(obs, cfg: dict) -> np.ndarray:
+    """
+    Convert a raw environment observation to a float32 numpy vector.
+
+    - Continuous envs  (discrete_obs=False): obs is already a float array,
+      returned as-is.
+    - Discrete obs envs (discrete_obs=True):  obs is a single integer.
+      One-hot encode it to an (n_states,) float32 vector so the MLP can
+      treat each cell as a distinct input feature without imposing any
+      ordinal relationship between cell indices.
+    """
+    if cfg["discrete_obs"]:
+        vec = np.zeros(cfg["n_states"], dtype=np.float32)
+        vec[int(obs)] = 1.0
+        return vec
+    return np.asarray(obs, dtype=np.float32)
+
+
+def get_obs_dim(cfg: dict, env: gym.Env) -> int:
+    """
+    Return the dimensionality of the preprocessed observation vector.
+    For discrete obs envs this is n_states; for continuous it's the
+    raw observation space shape.
+    """
+    if cfg["discrete_obs"]:
+        return cfg["n_states"]
+    return env.observation_space.shape[0]
+
+
+# ─────────────────────────────────────────────
+# REWARD SHAPING 
 # ─────────────────────────────────────────────
 def shape_reward(obs, next_obs, raw_reward: float,
                  env_name: str, gamma: float) -> float:
     """
-    Potential-based reward shaping  F(s, s') = γ·Φ(s') − Φ(s).
-    Only active for MountainCar-v0 (raw reward is too sparse for PPO).
-
-    Φ(s) = position + velocity²
-      - position  → pushes the car toward the right-side goal
-      - velocity² → rewards building kinetic energy (the swinging motion)
-
-    Theory guarantee: adding F preserves the set of optimal policies
-    because it is equivalent to potential-based shaping (Ng et al. 1999).
-    Raw return is always tracked separately for honest reporting.
+    Potential-based reward shaping F(s, s') = γ·Φ(s') − Φ(s).
+    Currently unused for all supported envs (kept for future extension).
+    Raw return is always plotted.
     """
-    if env_name != "MountainCar-v0":
-        return raw_reward
-    phi_s  = obs[0]      + obs[1] ** 2
-    phi_s2 = next_obs[0] + next_obs[1] ** 2
-    return raw_reward + (gamma * phi_s2 - phi_s)
+    return raw_reward   # no shaping active for any current env
 
 
 # ─────────────────────────────────────────────
@@ -872,7 +626,7 @@ class Buffer:
 
 
 # ─────────────────────────────────────────────
-# NETWORKS
+# NETWORKS 
 # ─────────────────────────────────────────────
 def build_mlp(in_dim: int, hidden_sizes: tuple, out_dim: int) -> nn.Sequential:
     """Tanh MLP — standard for PPO policy/value networks."""
@@ -918,7 +672,7 @@ class Critic(nn.Module):
 
 
 # ─────────────────────────────────────────────
-# PPO UPDATE FUNCTIONS
+# PPO UPDATE FUNCTIONS 
 # ─────────────────────────────────────────────
 def train_policy(actor, policy_optimizer, obs_t, act_t,
                  logp_old_t, adv_t, clip_ratio, target_kl):
@@ -959,8 +713,17 @@ def train_ppo(env_name: str = "CartPole-v1"):
     plots_dir = os.path.join(BASE_DIR, "PPO_plots", env_name)
     os.makedirs(plots_dir, exist_ok=True)
 
+    # ── Initialize log file ────────────────────────────────────────────
+    log_file = open(os.path.join(plots_dir, "training.txt"), "w")
+
+    def log_print(*args, **kwargs):
+        """Print to both console and log file."""
+        print(*args, **kwargs)
+        print(*args, **kwargs, file=log_file)
+        log_file.flush()
+
     env     = gym.make(env_name)
-    obs_dim = env.observation_space.shape[0]
+    obs_dim = get_obs_dim(cfg, env)          # 48 for CliffWalking, raw shape otherwise
     n_act   = env.action_space.n
 
     actor  = Actor(obs_dim,  n_act, cfg["hidden_sizes"]).to(DEVICE)
@@ -970,20 +733,21 @@ def train_ppo(env_name: str = "CartPole-v1"):
 
     buffer = Buffer(obs_dim, cfg["steps_per_epoch"], cfg["gamma"], cfg["lam"])
 
-    print(f"\n{'='*60}")
-    print(f"  PPO — {env_name}  (no world model)")
-    print(f"  obs_dim={obs_dim} | n_actions={n_act} | device={DEVICE}")
-    print(f"  hidden={cfg['hidden_sizes']} | "
-          f"policy_lr={cfg['policy_lr']} | value_lr={cfg['value_lr']}")
-    print(f"  steps/epoch={cfg['steps_per_epoch']} | epochs={cfg['epochs']}")
-    print(f"  γ={cfg['gamma']} | λ={cfg['lam']} | "
-          f"clip={cfg['clip_ratio']} | target_kl={cfg['target_kl']}")
-    if cfg["shaped_reward"]:
-        print(f"  reward shaping: ON (potential-based, γ·Φ(s')−Φ(s))")
-    print(f"{'='*60}\n")
+    log_print(f"\n{'='*60}")
+    log_print(f"  PPO — {env_name}  (no world model)")
+    log_print(f"  obs_dim={obs_dim} | n_actions={n_act} | device={DEVICE}")
+    log_print(f"  hidden={cfg['hidden_sizes']} | "
+              f"policy_lr={cfg['policy_lr']} | value_lr={cfg['value_lr']}")
+    log_print(f"  steps/epoch={cfg['steps_per_epoch']} | epochs={cfg['epochs']}")
+    log_print(f"  γ={cfg['gamma']} | λ={cfg['lam']} | "
+              f"clip={cfg['clip_ratio']} | target_kl={cfg['target_kl']}")
+    if cfg["discrete_obs"]:
+        log_print(f"  obs encoding: one-hot ({cfg['n_states']} states)")
+    log_print(f"{'='*60}\n")
 
     all_rewards, mean_rewards = [], []
-    observation, _ = env.reset(seed=SEED)
+    raw_obs, _ = env.reset(seed=SEED)
+    observation = preprocess_obs(raw_obs, cfg)   # float32 vector from the start
     ep_return, ep_length = 0.0, 0
     num_episodes_total = 0
 
@@ -1003,10 +767,14 @@ def train_ppo(env_name: str = "CartPole-v1"):
             logp   = logp_t.item()
             value  = value_t.item()
 
-            observation_new, reward, terminated, truncated, _ = env.step(action)
+            raw_obs_new, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
 
-            # Shaped reward stored in buffer; raw reward tracked for plotting
+            # Preprocess the new obs immediately — obs stored in buffer is
+            # always the float32 vector, never the raw integer.
+            observation_new = preprocess_obs(raw_obs_new, cfg)
+
+            # shape_reward is a no-op for all current envs (kept for API consistency)
             stored_reward = shape_reward(
                 observation, observation_new, reward, env_name, cfg["gamma"])
 
@@ -1035,8 +803,8 @@ def train_ppo(env_name: str = "CartPole-v1"):
                 all_rewards.append(ep_return)
                 mean_rewards.append(np.mean(all_rewards[-25:]))
 
-                observation, _ = env.reset(
-                    seed=SEED + num_episodes_total)
+                raw_obs, _ = env.reset(seed=SEED + num_episodes_total)
+                observation = preprocess_obs(raw_obs, cfg)
                 ep_return, ep_length = 0.0, 0
 
         # ── PPO update ────────────────────────────────────────────────
@@ -1053,8 +821,8 @@ def train_ppo(env_name: str = "CartPole-v1"):
                               logp_t, adv_t,
                               cfg["clip_ratio"], cfg["target_kl"])
             if kl > 1.5 * cfg["target_kl"]:
-                print(f"   [KL early stop] epoch={epoch+1} "
-                      f"iter={pi_iter+1} kl={kl:.5f}")
+                log_print(f"   [KL early stop] epoch={epoch+1} "
+                          f"iter={pi_iter+1} kl={kl:.5f}")
                 break
 
         for _ in range(cfg["train_value_iterations"]):
@@ -1062,11 +830,11 @@ def train_ppo(env_name: str = "CartPole-v1"):
 
         mean_ret = sum_return / max(num_episodes, 1)
         mean_len = sum_length / max(num_episodes, 1)
-        print(f"Epoch {epoch+1:03d}/{cfg['epochs']}  "
-              f"MeanReturn={mean_ret:8.2f}  "
-              f"MeanLen={mean_len:6.1f}  "
-              f"Episodes={num_episodes:4d}  "
-              f"TotalEps={num_episodes_total}")
+        log_print(f"Epoch {epoch+1:03d}/{cfg['epochs']}  "
+                  f"MeanReturn={mean_ret:8.2f}  "
+                  f"MeanLen={mean_len:6.1f}  "
+                  f"Episodes={num_episodes:4d}  "
+                  f"TotalEps={num_episodes_total}")
 
     env.close()
 
@@ -1114,23 +882,26 @@ def train_ppo(env_name: str = "CartPole-v1"):
     fig_path = os.path.join(plots_dir, "ppo_curve.png")
     plt.savefig(fig_path, dpi=150, bbox_inches='tight')
     plt.show()
-    print(f"[Plot] Saved → {fig_path}")
+    log_print(f"[Plot] Saved → {fig_path}")
 
     # ── Save weights ──────────────────────────────────────────────────
     pth_path = os.path.join(plots_dir, "ppo_agent.pth")
     torch.save({
-        "actor":       actor.state_dict(),
-        "critic":      critic.state_dict(),
-        "env_name":    env_name,
-        "obs_dim":     obs_dim,
-        "n_actions":   n_act,
+        "actor":        actor.state_dict(),
+        "critic":       critic.state_dict(),
+        "env_name":     env_name,
+        "obs_dim":      obs_dim,
+        "n_actions":    n_act,
         "hidden_sizes": cfg["hidden_sizes"],
+        "discrete_obs": cfg["discrete_obs"],
+        "n_states":     cfg["n_states"],
     }, pth_path)
-    print(f"[Model] Saved → {pth_path}")
+    log_print(f"[Model] Saved → {pth_path}")
 
     # ── Greedy evaluation ─────────────────────────────────────────────
     eval_env  = gym.make(env_name)
-    obs_e, _  = eval_env.reset(seed=SEED + 111)
+    raw_obs_e, _ = eval_env.reset(seed=SEED + 111)
+    obs_e     = preprocess_obs(raw_obs_e, cfg)
     total_r   = 0.0
     done_e    = False
     actor.eval()
@@ -1139,11 +910,14 @@ def train_ppo(env_name: str = "CartPole-v1"):
             logits = actor(torch.tensor(obs_e, dtype=torch.float32,
                                         device=DEVICE).unsqueeze(0))
             a_e    = int(torch.argmax(logits).item())
-        obs_e, r_e, term_e, trunc_e, _ = eval_env.step(a_e)
+        raw_obs_e, r_e, term_e, trunc_e, _ = eval_env.step(a_e)
+        obs_e   = preprocess_obs(raw_obs_e, cfg)
         done_e  = term_e or trunc_e
         total_r += r_e
-    print(f"[Eval] Greedy episode reward = {total_r}")
+    log_print(f"[Eval] Greedy episode reward = {total_r}")
     eval_env.close()
+
+    log_file.close()
 
     return actor, critic, all_rewards, mean_rewards
 
