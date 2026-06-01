@@ -1,4 +1,25 @@
+(.venv) PS C:\Users\Imane\OneDrive\Bureau\IAGI-S4\RL\Projet\Precedence-Estimation> python dqn_agent.py --env CliffWalking-v1
 
 ============================================================
-  DQN � CliffWalking-v1  (no world model)
+  DQN — CliffWalking-v1  (no world model)
   obs_dim=48 | n_actions=4 | device=cpu
+  hidden=(64, 64) | lr=0.001 | γ=0.99
+  buffer=20000 | batch=64 | warmup=500
+  ε: 1.0 → 0.01 over 5000 steps
+  target_update=200 | episodes=500
+  obs encoding: one-hot (48 states)
+============================================================
+
+Episode 0050/500  Return=   -15.0  Mean25=  -47.48  ε=0.118  Steps=4455
+Episode 0100/500  Return=   -13.0  Mean25=  -17.68  ε=0.010  Steps=5216
+Episode 0150/500  Return=   -13.0  Mean25=  -13.12  ε=0.010  Steps=5881
+Episode 0200/500  Return=   -13.0  Mean25=  -13.44  ε=0.010  Steps=6570
+Episode 0250/500  Return=   -13.0  Mean25=  -13.08  ε=0.010  Steps=7227
+Episode 0300/500  Return=   -13.0  Mean25=  -17.32  ε=0.010  Steps=7890
+Episode 0350/500  Return=   -13.0  Mean25=  -13.12  ε=0.010  Steps=8545
+Episode 0400/500  Return=   -13.0  Mean25=  -13.08  ε=0.010  Steps=9214
+Episode 0450/500  Return=   -13.0  Mean25=  -17.28  ε=0.010  Steps=9874
+Episode 0500/500  Return=   -13.0  Mean25=  -13.08  ε=0.010  Steps=10532
+[Plot] Saved → C:\Users\Imane\OneDrive\Bureau\IAGI-S4\RL\Projet\Precedence-Estimation\DQN_plots\CliffWalking-v1\dqn_curve.png
+[Model] Saved → C:\Users\Imane\OneDrive\Bureau\IAGI-S4\RL\Projet\Precedence-Estimation\DQN_plots\CliffWalking-v1\dqn_agent.pth
+[Eval] Greedy episode reward = -13.0
