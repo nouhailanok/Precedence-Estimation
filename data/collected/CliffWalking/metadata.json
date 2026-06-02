@@ -1,6 +1,6 @@
 {
     "env_name": "CliffWalking-v1",
-    "collection_date": "2026-06-02 16:53:22",
+    "collection_date": "2026-06-02 18:29:56",
     "total_steps": 200000,
     "total_episodes": 1012,
     "n_steps": 5,
