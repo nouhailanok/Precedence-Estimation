@@ -1,415 +1,28 @@
-# # # ─────────────────────────────────────────────
-# # # ENTRY POINT
-# # # ─────────────────────────────────────────────
-# # if __name__ == "__main__":
-# #     train_ppo()
-
-
-# """
-# ppo_agent.py — Pure PPO baseline for CartPole-v1
-#   https://keras.io/examples/rl/ppo_cartpole/
-
-# Key design decisions:
-#   - Separate actor and critic networks (not shared backbone)
-#   - GAE-λ via scipy.signal.lfilter (discounted cumulative sums)
-#   - Separate optimizers for actor and critic (different LRs)
-#   - KL early stopping on the policy update
-#   - steps_per_epoch rollout structure (not episode-count based)
-#   - train_policy_iterations + train_value_iterations inner loops
-
-# Output
-#     PPO_plots/
-#         ppo_curve.png
-#         ppo_agent.pth
-# """
-
-# import os
-# import numpy as np
-# import torch
-# import torch.nn as nn
-# import torch.optim as optim
-# import matplotlib.pyplot as plt
-# import gymnasium as gym
-# import scipy.signal
-
-# BASE_DIR  = os.path.dirname(os.path.abspath(__file__))
-# PLOTS_DIR = os.path.join(BASE_DIR, "PPO_plots")
-# ENV_NAME  = "CartPole-v1"
-
-
-# STEPS_PER_EPOCH         = 4000
-# EPOCHS                  = 30
-# GAMMA                   = 0.99
-# CLIP_RATIO              = 0.2
-# POLICY_LR               = 3e-4
-# VALUE_LR                = 1e-3
-# TRAIN_POLICY_ITERATIONS = 80
-# TRAIN_VALUE_ITERATIONS  = 80
-# LAM                     = 0.97
-# TARGET_KL               = 0.01
-# HIDDEN_SIZES            = (64, 64)
-
-# SEED   = 42
-# DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-# os.makedirs(PLOTS_DIR, exist_ok=True)
-# np.random.seed(SEED)
-# torch.manual_seed(SEED)
-
-
-# # ─────────────────────────────────────────────
-# # DISCOUNTED CUMULATIVE SUMS
-# # ─────────────────────────────────────────────
-# def discounted_cumulative_sums(x, discount):
-#     """scipy.signal.lfilter trick"""
-#     return scipy.signal.lfilter([1], [1, float(-discount)], x[::-1], axis=0)[::-1]
-
-
-# # ─────────────────────────────────────────────
-# # BUFFER 
-# # ─────────────────────────────────────────────
-# class Buffer:
-#     """
-#     Stores one epoch of trajectories.
-#     finish_trajectory() computes GAE-λ advantages + rewards-to-go.
-#     get() returns all data and resets the pointer.
-#     """
-#     def __init__(self, obs_dim, size, gamma=GAMMA, lam=LAM):
-#         self.obs_buf    = np.zeros((size, obs_dim), dtype=np.float32)
-#         self.act_buf    = np.zeros(size,            dtype=np.int32)
-#         self.adv_buf    = np.zeros(size,            dtype=np.float32)
-#         self.rew_buf    = np.zeros(size,            dtype=np.float32)
-#         self.ret_buf    = np.zeros(size,            dtype=np.float32)
-#         self.val_buf    = np.zeros(size,            dtype=np.float32)
-#         self.logp_buf   = np.zeros(size,            dtype=np.float32)
-#         self.gamma, self.lam = gamma, lam
-#         self.ptr, self.traj_start = 0, 0
-
-#     def store(self, obs, action, reward, value, logp):
-#         self.obs_buf[self.ptr]  = obs
-#         self.act_buf[self.ptr]  = action
-#         self.rew_buf[self.ptr]  = reward
-#         self.val_buf[self.ptr]  = value
-#         self.logp_buf[self.ptr] = logp
-#         self.ptr += 1
-
-#     def finish_trajectory(self, last_value=0.0):
-#         """
-#         Call at episode end or epoch end.
-#         Computes GAE-λ advantages and discounted rewards-to-go.
-#         """
-#         path = slice(self.traj_start, self.ptr)
-#         rewards = np.append(self.rew_buf[path], last_value)
-#         values  = np.append(self.val_buf[path], last_value)
-
-#         # TD residuals → GAE
-#         deltas = rewards[:-1] + self.gamma * values[1:] - values[:-1]
-#         self.adv_buf[path] = discounted_cumulative_sums(deltas, self.gamma * self.lam)
-
-#         # Rewards-to-go (targets for the value function)
-#         self.ret_buf[path] = discounted_cumulative_sums(rewards, self.gamma)[:-1]
-
-#         self.traj_start = self.ptr
-
-#     def get(self):
-#         """Return all data, normalize advantages, reset pointer."""
-#         assert self.ptr == len(self.obs_buf), "Buffer not full — call finish_trajectory first."
-#         self.ptr, self.traj_start = 0, 0
-#         # Normalize advantages (zero mean, unit std)
-#         adv_mean = self.adv_buf.mean()
-#         adv_std  = self.adv_buf.std() + 1e-8
-#         self.adv_buf = (self.adv_buf - adv_mean) / adv_std
-#         return (
-#             self.obs_buf,
-#             self.act_buf,
-#             self.adv_buf,
-#             self.ret_buf,
-#             self.logp_buf,
-#         )
-
-
-# # ─────────────────────────────────────────────
-# # NETWORKS 
-# # ─────────────────────────────────────────────
-# def build_mlp(in_dim, hidden_sizes, out_dim, output_activation=None):
-#     """Build a Tanh MLP """
-#     layers = []
-#     prev = in_dim
-#     for h in hidden_sizes:
-#         layers += [nn.Linear(prev, h), nn.Tanh()]
-#         prev = h
-#     layers.append(nn.Linear(prev, out_dim))
-#     if output_activation is not None:
-#         layers.append(output_activation)
-#     return nn.Sequential(*layers)
-
-
-# class Actor(nn.Module):
-#     """Outputs raw logits"""
-#     def __init__(self, obs_dim, n_act, hidden=(64, 64)):
-#         super().__init__()
-#         self.net = build_mlp(obs_dim, hidden, n_act)
-
-#     def forward(self, obs):
-#         return self.net(obs)   # logits
-
-#     def logprobabilities(self, obs, actions):
-#         """log π(a|s) for a batch of (obs, action) pairs."""
-#         logits    = self(obs)
-#         log_probs = torch.log_softmax(logits, dim=-1)
-#         # Gather log-prob of the taken action
-#         return log_probs.gather(1, actions.unsqueeze(1)).squeeze(1)
-
-#     @torch.no_grad()
-#     def sample_action(self, obs):
-#         """Sample action and return (logits, action, log_prob)."""
-#         logits = self(obs)
-#         action = torch.distributions.Categorical(logits=logits).sample()
-#         log_probs = torch.log_softmax(logits, dim=-1)
-#         logp = log_probs.gather(1, action.unsqueeze(1)).squeeze(1)
-#         return logits, action, logp
-
-
-# class Critic(nn.Module):
-#     """Outputs scalar V(s)"""
-#     def __init__(self, obs_dim, hidden=(64, 64)):
-#         super().__init__()
-#         self.net = build_mlp(obs_dim, hidden, 1)
-
-#     def forward(self, obs):
-#         return self.net(obs).squeeze(-1)
-
-
-# # ─────────────────────────────────────────────
-# # PPO UPDATE FUNCTIONS
-# # ─────────────────────────────────────────────
-# def train_policy(actor, policy_optimizer, obs_t, act_t, logp_old_t, adv_t):
-#     """
-#     One gradient step on the clipped PPO objective.
-#     Returns KL divergence for early stopping
-#     """
-#     policy_optimizer.zero_grad()
-#     logp_new = actor.logprobabilities(obs_t, act_t)
-#     ratio    = torch.exp(logp_new - logp_old_t)
-
-#     # Clipped surrogate loss
-#     clip_adv = torch.where(
-#         adv_t > 0,
-#         (1 + CLIP_RATIO) * adv_t,
-#         (1 - CLIP_RATIO) * adv_t,
-#     )
-#     policy_loss = -torch.mean(torch.minimum(ratio * adv_t, clip_adv))
-#     policy_loss.backward()
-#     policy_optimizer.step()
-
-#     # KL estimate for early stopping
-#     with torch.no_grad():
-#         kl = torch.mean(logp_old_t - actor.logprobabilities(obs_t, act_t))
-#     return kl.item()
-
-
-# def train_value_function(critic, value_optimizer, obs_t, ret_t):
-#     """One gradient step on MSE value loss """
-#     value_optimizer.zero_grad()
-#     value_loss = torch.mean((ret_t - critic(obs_t)) ** 2)
-#     value_loss.backward()
-#     value_optimizer.step()
-#     return value_loss.item()
-
-
-# # ─────────────────────────────────────────────
-# # TRAINING LOOP
-# # ─────────────────────────────────────────────
-# def train_ppo():
-#     env     = gym.make(ENV_NAME)
-#     obs_dim = env.observation_space.shape[0]
-#     n_act   = env.action_space.n
-
-#     actor  = Actor(obs_dim,  n_act, HIDDEN_SIZES).to(DEVICE)
-#     critic = Critic(obs_dim, HIDDEN_SIZES).to(DEVICE)
-#     policy_optimizer = optim.Adam(actor.parameters(),  lr=POLICY_LR)
-#     value_optimizer  = optim.Adam(critic.parameters(), lr=VALUE_LR)
-
-#     buffer = Buffer(obs_dim, STEPS_PER_EPOCH)
-
-#     print(f"[PPO] Pure baseline — no world model")
-#     print(f"      STEPS_PER_EPOCH={STEPS_PER_EPOCH} | EPOCHS={EPOCHS}")
-#     print(f"      CLIP_RATIO={CLIP_RATIO} | TARGET_KL={TARGET_KL} | LAM={LAM}")
-
-#     # Per-episode tracking for the learning curve
-#     all_rewards, mean_rewards = [], []
-
-#     observation, _ = env.reset(seed=SEED)
-#     ep_return, ep_length = 0.0, 0
-
-#     # ── Epoch loop ──────────────────────────────
-#     for epoch in range(EPOCHS):
-#         sum_return   = 0.0
-#         sum_length   = 0
-#         num_episodes = 0
-
-#         # ── Step loop ────────────────────────────────────────────────────────
-#         for t in range(STEPS_PER_EPOCH):
-#             obs_t = torch.tensor(observation, dtype=torch.float32, device=DEVICE).unsqueeze(0)
-
-#             # Sample action from actor
-#             with torch.no_grad():
-#                 _, action_t, logp_t = actor.sample_action(obs_t)
-#                 value_t = critic(obs_t)
-
-#             action = int(action_t.item())
-#             logp   = logp_t.item()
-#             value  = value_t.item()
-
-#             observation_new, reward, terminated, truncated, _ = env.step(action)
-#             done = terminated or truncated
-#             ep_return += reward
-#             ep_length += 1
-
-#             buffer.store(observation, action, reward, value, logp)
-#             observation = observation_new
-
-#             # ── End of trajectory ─────────────────────────────────────────
-#             terminal = done or (t == STEPS_PER_EPOCH - 1)
-#             if terminal:
-#                 if done:
-#                     last_value = 0.0
-#                 else:
-#                     # Bootstrap from critic (episode cut off by epoch boundary)
-#                     obs_t_  = torch.tensor(observation, dtype=torch.float32, device=DEVICE).unsqueeze(0)
-#                     with torch.no_grad():
-#                         last_value = critic(obs_t_).item()
-
-#                 buffer.finish_trajectory(last_value)
-#                 sum_return   += ep_return
-#                 sum_length   += ep_length
-#                 num_episodes += 1
-
-#                 # Track per-episode reward (for learning curve)
-#                 all_rewards.append(ep_return)
-#                 mean_rewards.append(np.mean(all_rewards[-25:]))
-
-#                 observation, _ = env.reset(seed=SEED + num_episodes + epoch * 1000)
-#                 ep_return, ep_length = 0.0, 0
-
-#         # ── PPO update ───────────────────────────────────────────────────────
-#         obs_buf, act_buf, adv_buf, ret_buf, logp_buf = buffer.get()
-
-#         obs_t  = torch.tensor(obs_buf,  dtype=torch.float32, device=DEVICE)
-#         act_t  = torch.tensor(act_buf,  dtype=torch.int64,   device=DEVICE)
-#         adv_t  = torch.tensor(adv_buf,  dtype=torch.float32, device=DEVICE)
-#         ret_t  = torch.tensor(ret_buf,  dtype=torch.float32, device=DEVICE)
-#         logp_t = torch.tensor(logp_buf, dtype=torch.float32, device=DEVICE)
-
-#         # Policy update with KL early stopping
-#         for i in range(TRAIN_POLICY_ITERATIONS):
-#             kl = train_policy(actor, policy_optimizer, obs_t, act_t, logp_t, adv_t)
-#             if kl > 1.5 * TARGET_KL:
-#                 print(f"   [KL early stop] epoch={epoch+1} iter={i+1} kl={kl:.5f}")
-#                 break
-
-#         # Value function update
-#         for _ in range(TRAIN_VALUE_ITERATIONS):
-#             train_value_function(critic, value_optimizer, obs_t, ret_t)
-
-#         mean_ret = sum_return / max(num_episodes, 1)
-#         mean_len = sum_length / max(num_episodes, 1)
-#         print(f"Epoch {epoch+1:02d}/{EPOCHS}  "
-#               f"MeanReturn={mean_ret:.2f}  "
-#               f"MeanLength={mean_len:.2f}  "
-#               f"Episodes={num_episodes}")
-
-#     env.close()
-
-#     # ── Learning curve plot ──────────────────────────────────────────────────
-#     plt.figure(figsize=(10, 4))
-#     plt.plot(all_rewards,  alpha=0.35, label="Episode Return")
-#     plt.plot(mean_rewards, linewidth=2,  label="Mean-25")
-#     plt.grid(alpha=0.3)
-#     plt.xlabel("Episode")
-#     plt.ylabel("Reward")
-#     plt.title("Pure PPO — CartPole-v1 (no world model)")
-#     plt.legend()
-#     plt.tight_layout()
-#     fig_path = os.path.join(PLOTS_DIR, "ppo_curve.png")
-#     plt.savefig(fig_path, dpi=150)
-#     plt.show()
-#     print(f"[Plot] Saved → {fig_path}")
-
-#     # ── Save weights ─────────────────────────────────────────────────────────
-#     pth_path = os.path.join(PLOTS_DIR, "ppo_agent.pth")
-#     torch.save({
-#         "actor":  actor.state_dict(),
-#         "critic": critic.state_dict(),
-#     }, pth_path)
-#     print(f"[Model] Saved → {pth_path}")
-
-#     # ── Greedy evaluation ───────────────
-#     eval_env  = gym.make(ENV_NAME)
-#     obs_e, _  = eval_env.reset(seed=SEED + 111)
-#     total_r   = 0.0
-#     done_e    = False
-#     actor.eval()
-#     while not done_e:
-#         with torch.no_grad():
-#             logits = actor(torch.tensor(obs_e, dtype=torch.float32, device=DEVICE).unsqueeze(0))
-#             a_e    = int(torch.argmax(logits).item())
-#         obs_e, r_e, term_e, trunc_e, _ = eval_env.step(a_e)
-#         done_e  = term_e or trunc_e
-#         total_r += r_e
-#     print(f"[Eval] Greedy episode reward = {total_r}")
-#     eval_env.close()
-
-
-# # ─────────────────────────────────────────────
-# # ENTRY POINT
-# # ─────────────────────────────────────────────
-# if __name__ == "__main__":
-#     train_ppo()
-
 """
 ppo_agent.py — Pure PPO baseline
 ==================================
-Supports CartPole-v1, LunarLander-v3, and CliffWalking-v1.
-No world model, no synthetic transitions.
+Supports CartPole-v1 and CliffWalking-v1 (no world model).
 
 Usage
 -----
     python ppo_agent.py                          # default: CartPole-v1
-    python ppo_agent.py --env LunarLander-v3
     python ppo_agent.py --env CliffWalking-v1
 
-Design decisions:
-  - Separate Actor and Critic networks (independent optimisers + LRs)
-  - GAE-λ via scipy.signal.lfilter (discounted cumulative sums)
-  - KL early stopping on the policy update
-  - steps_per_epoch rollout structure
-  - Per-environment hyperparameter profiles
-
-Why per-env tuning is necessary
----------------------------------
-CartPole-v1   : dense +1/step, short episodes (≤500), 4-dim state, 2 actions.
-                Small net, 4000 steps/epoch, 30 epochs.
-
-LunarLander-v3: shaped reward (±100 land/crash, leg contacts, velocity penalties),
-                episodes up to 1000 steps, 8-dim state, 4 actions.
-                Needs larger net, more steps/epoch, more epochs, and a lower
-                TARGET_KL (policy is more sensitive — tighter trust region).
-
-CliffWalking-v1: reward = −1/step, −100 if cliff, +0 at goal (terminal).
-                 Discrete obs (integer 0..47, row-major 4×12 grid).
-                 One-hot encoded to a 48-dim vector before feeding the network.
-                 Very sparse negative reward → needs long credit assignment (high lam).
-                 No potential-based shaping needed: −1/step is enough signal.
+Metrics (train + greedy eval, alignés avec dqn_with_precedence_CartPole_full.ipynb)
+------------------------------------------------------------------------------------
+  Train : avg reward, std, AUC (aire sous courbe), n_episodes, n_steps
+  Eval  : greedy sur EVAL_N_EPISODES — mean, std, min, max, median, success_rate, lengths
 
 Output
 ------
     PPO_plots/<env>/
         ppo_curve.png
+        ppo_metrics.json
         ppo_agent.pth
 """
 
 import os
+import json
 import argparse
 import numpy as np
 import torch
@@ -429,6 +42,10 @@ DEVICE   = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 np.random.seed(SEED)
 torch.manual_seed(SEED)
 
+# Greedy eval — même protocole que dqn_with_precedence_CartPole_full.ipynb
+EVAL_N_EPISODES = 30
+EVAL_SEED_OFFSET = 1000
+
 
 # ─────────────────────────────────────────────
 # PER-ENVIRONMENT HYPERPARAMETER PROFILES
@@ -438,6 +55,7 @@ ENV_PROFILES = {
         # ── rollout ──
         "steps_per_epoch":         4_000,
         "epochs":                  30,
+        "max_steps_per_episode":   500,
         # ── network ──
         "hidden_sizes":            (64, 64),
         # ── optimisation ──
@@ -450,40 +68,10 @@ ENV_PROFILES = {
         "lam":                     0.97,
         "clip_ratio":              0.2,
         "target_kl":               0.01,
-        # ── plotting ──
-        "solve_threshold":         475,
+        # ── plotting / eval (500 = seuil DQN full notebook) ──
+        "solve_threshold":         500,
         # ── reward shaping ──
         "shaped_reward":           False,
-        # ── observation ──
-        "discrete_obs":            False,
-        "n_states":                None,
-    },
-
-    "LunarLander-v3": {
-        # Larger rollout window for the longer, noisier episodes.
-        # Lower target_kl — policy is more sensitive in this env;
-        # a tighter trust region prevents catastrophic updates.
-        # More epochs because the task is harder and the reward landscape
-        # has sharp discontinuities (crash vs soft landing).
-        # ── rollout ──
-        "steps_per_epoch":         8_000,
-        "epochs":                  60,
-        # ── network ──
-        "hidden_sizes":            (128, 128),   # 8-dim state, 4 actions
-        # ── optimisation ──
-        "policy_lr":               3e-4,
-        "value_lr":                1e-3,
-        "train_policy_iterations": 80,
-        "train_value_iterations":  80,
-        # ── GAE / PPO ──
-        "gamma":                   0.99,
-        "lam":                     0.97,
-        "clip_ratio":              0.2,
-        "target_kl":               0.005,        # tighter — env is sensitive
-        # ── plotting ──
-        "solve_threshold":         200,          # gym: ≥200 mean-100
-        # ── reward shaping ──
-        "shaped_reward":           False,        # reward already dense enough
         # ── observation ──
         "discrete_obs":            False,
         "n_states":                None,
@@ -499,6 +87,7 @@ ENV_PROFILES = {
         # ── rollout ──
         "steps_per_epoch":         4_000,
         "epochs":                  80,
+        "max_steps_per_episode":   200,
         # ── network ──
         "hidden_sizes":            (64, 64),
         # ── optimisation ──
@@ -567,6 +156,61 @@ def shape_reward(obs, next_obs, raw_reward: float,
     Raw return is always plotted.
     """
     return raw_reward   # no shaping active for any current env
+
+
+# ─────────────────────────────────────────────
+# METRICS & GREEDY EVAL  (compatible DQN full notebook)
+# ─────────────────────────────────────────────
+def learning_curve_auc(rewards: np.ndarray) -> float:
+    """Aire sous la courbe des returns (trapèzes sur numéro d'épisode)."""
+    if len(rewards) == 0:
+        return 0.0
+    if len(rewards) == 1:
+        return float(rewards[0])
+    return float(np.trapz(rewards.astype(np.float64), np.arange(len(rewards))))
+
+
+def compute_training_metrics(all_rewards: list, mean_rewards: list,
+                             n_episodes: int, n_steps: int) -> dict:
+    """Résumé entraînement : avg, std, AUC, compteurs."""
+    arr = np.array(all_rewards, dtype=np.float32)
+    last_n = min(50, len(arr))
+    return {
+        "train_avg_reward": float(arr.mean()) if len(arr) else 0.0,
+        "train_std_reward": float(arr.std()) if len(arr) else 0.0,
+        "train_final_mean": float(arr[-last_n:].mean()) if last_n else 0.0,
+        "train_final_std": float(arr[-last_n:].std()) if last_n > 1 else 0.0,
+        "train_auc": learning_curve_auc(arr),
+        "train_mean25_final": float(mean_rewards[-1]) if mean_rewards else 0.0,
+        "n_episodes": int(n_episodes),
+        "n_steps": int(n_steps),
+    }
+
+
+def print_metrics_summary(train_m: dict, eval_m: dict, log_print=print):
+    """Affichage aligné sur le résumé DQN full notebook."""
+    log_print(f"\n{'='*72}")
+    log_print("  TRAINING METRICS")
+    log_print(f"{'='*72}")
+    log_print(f"  Episodes        : {train_m['n_episodes']}")
+    log_print(f"  Steps (total)   : {train_m['n_steps']}")
+    log_print(f"  Avg reward      : {train_m['train_avg_reward']:.2f}")
+    log_print(f"  Std reward      : {train_m['train_std_reward']:.2f}")
+    log_print(f"  AUC (learning)  : {train_m['train_auc']:.1f}")
+    log_print(f"  Final mean (50) : {train_m['train_final_mean']:.2f} ± {train_m['train_final_std']:.2f}")
+
+    log_print(f"\n{'='*72}")
+    log_print(f"  GREEDY EVAL ({eval_m['n_episodes']} episodes)")
+    log_print(f"{'='*72}")
+    log_print(f"  Mean reward     : {eval_m['eval_mean']:.2f} ± {eval_m['eval_std']:.2f}")
+    log_print(f"  Min / Median / Max : {eval_m['eval_min']:.0f} / "
+              f"{eval_m['eval_median']:.0f} / {eval_m['eval_max']:.0f}")
+    log_print(f"  Success rate    : {100*eval_m['success_rate']:.1f}% "
+              f"({eval_m['n_solved']}/{eval_m['n_episodes']}) "
+              f"[≥ {eval_m['solve_threshold']:.0f}]")
+    log_print(f"  Mean ep length  : {eval_m['eval_length_mean']:.1f} ± "
+              f"{eval_m['eval_length_std']:.1f}")
+    log_print(f"  Eval steps      : {eval_m['total_steps']}")
 
 
 # ─────────────────────────────────────────────
@@ -671,6 +315,70 @@ class Critic(nn.Module):
         return self.net(obs).squeeze(-1)
 
 
+@torch.no_grad()
+def evaluate_ppo_greedy(actor: Actor, env_name: str, cfg: dict,
+                        n_episodes: int = EVAL_N_EPISODES,
+                        seed_offset: int = EVAL_SEED_OFFSET) -> dict:
+    """
+    Évaluation greedy (argmax logits) — même structure que evaluate_agent_greedy
+    dans dqn_with_precedence_CartPole_full.ipynb.
+    """
+    env = gym.make(env_name)
+    max_steps = cfg.get("max_steps_per_episode", 500)
+    solve_threshold = cfg["solve_threshold"]
+
+    was_training = actor.training
+    actor.eval()
+
+    rewards, lengths = [], []
+    total_steps = 0
+
+    for ep in range(n_episodes):
+        raw_obs, _ = env.reset(seed=SEED + seed_offset + ep)
+        obs = preprocess_obs(raw_obs, cfg)
+        ep_reward, ep_len = 0.0, 0
+
+        for _ in range(max_steps):
+            obs_t = torch.tensor(obs, dtype=torch.float32, device=DEVICE).unsqueeze(0)
+            logits = actor(obs_t)
+            action = int(torch.argmax(logits, dim=-1).item())
+
+            raw_obs, reward, terminated, truncated, _ = env.step(action)
+            obs = preprocess_obs(raw_obs, cfg)
+            ep_reward += reward
+            ep_len += 1
+            total_steps += 1
+            if terminated or truncated:
+                break
+
+        rewards.append(ep_reward)
+        lengths.append(ep_len)
+
+    env.close()
+    if was_training:
+        actor.train()
+
+    rewards_arr = np.array(rewards, dtype=np.float32)
+    lengths_arr = np.array(lengths, dtype=np.float32)
+
+    return {
+        "eval_rewards": [float(r) for r in rewards],
+        "eval_lengths": [int(l) for l in lengths],
+        "eval_mean": float(rewards_arr.mean()),
+        "eval_std": float(rewards_arr.std()),
+        "eval_min": float(rewards_arr.min()),
+        "eval_max": float(rewards_arr.max()),
+        "eval_median": float(np.median(rewards_arr)),
+        "eval_length_mean": float(lengths_arr.mean()),
+        "eval_length_std": float(lengths_arr.std()),
+        "success_rate": float((rewards_arr >= solve_threshold).mean()),
+        "n_solved": int((rewards_arr >= solve_threshold).sum()),
+        "n_episodes": n_episodes,
+        "total_steps": total_steps,
+        "solve_threshold": float(solve_threshold),
+    }
+
+
 # ─────────────────────────────────────────────
 # PPO UPDATE FUNCTIONS 
 # ─────────────────────────────────────────────
@@ -750,6 +458,7 @@ def train_ppo(env_name: str = "CartPole-v1"):
     observation = preprocess_obs(raw_obs, cfg)   # float32 vector from the start
     ep_return, ep_length = 0.0, 0
     num_episodes_total = 0
+    total_steps = 0
 
     for epoch in range(cfg["epochs"]):
         sum_return   = 0.0
@@ -780,6 +489,7 @@ def train_ppo(env_name: str = "CartPole-v1"):
 
             ep_return += reward          # always RAW for honest reporting
             ep_length += 1
+            total_steps += 1
 
             buffer.store(observation, action, stored_reward, value, logp)
             observation = observation_new
@@ -838,47 +548,109 @@ def train_ppo(env_name: str = "CartPole-v1"):
 
     env.close()
 
+    # ── Métriques train + greedy eval ─────────────────────────────────
+    train_metrics = compute_training_metrics(
+        all_rewards, mean_rewards, num_episodes_total, total_steps
+    )
+    log_print(f"\n  [Eval] Greedy evaluation ({EVAL_N_EPISODES} episodes)...")
+    eval_metrics = evaluate_ppo_greedy(actor, env_name, cfg)
+    print_metrics_summary(train_metrics, eval_metrics, log_print=log_print)
+
+    metrics = {"env_name": env_name, "train": train_metrics, "eval": eval_metrics}
+    metrics_path = os.path.join(plots_dir, "ppo_metrics.json")
+    with open(metrics_path, "w") as f:
+        json.dump(metrics, f, indent=2)
+    log_print(f"[Metrics] Saved → {metrics_path}")
+
     # ── Plots ─────────────────────────────────────────────────────────
-    fig, axes = plt.subplots(1, 2, figsize=(13, 4))
+    threshold = cfg["solve_threshold"]
+    train_avg = train_metrics["train_avg_reward"]
+    eval_mean = eval_metrics["eval_mean"]
+    eval_std  = eval_metrics["eval_std"]
+
+    fig, axes = plt.subplots(2, 2, figsize=(14, 9))
     fig.suptitle(f"PPO — {env_name} (no world model)", fontsize=13)
 
-    ax = axes[0]
-    ax.plot(all_rewards,  alpha=0.30, linewidth=0.8, label="Episode Return")
+    episodes_x = np.arange(1, len(all_rewards) + 1)
+
+    ax = axes[0, 0]
+    ax.plot(all_rewards, alpha=0.30, linewidth=0.8, label="Episode Return")
     ax.plot(mean_rewards, linewidth=2.0, label="Mean-25")
-    threshold = cfg["solve_threshold"]
-    ax.axhline(y=threshold, color='r', linestyle='--', alpha=0.45,
-               linewidth=1, label=f"Threshold ({threshold})")
+    ax.axhline(train_avg, color='#6340A0', linestyle='-', alpha=0.7, linewidth=1.5,
+               label=f"Avg reward ({train_avg:.1f})")
+    ax.axhline(eval_mean, color='#1D9E75', linestyle='--', alpha=0.85, linewidth=1.5,
+               label=f"Greedy eval ({eval_mean:.1f}±{eval_std:.1f})")
+    ax.axhline(threshold, color='r', linestyle=':', alpha=0.5,
+               label=f"Solved (≥{threshold:.0f})")
     ax.set_xlabel("Episode")
     ax.set_ylabel("Return (raw)")
-    ax.set_title("Learning Curve")
-    ax.legend(fontsize=8)
+    ax.set_title("Learning Curve + Avg / Greedy Eval")
+    ax.legend(fontsize=7)
     ax.grid(alpha=0.3)
 
-    ax = axes[1]
+    ax = axes[0, 1]
     window = 25
     if len(all_rewards) >= window:
         smooth = np.convolve(all_rewards, np.ones(window) / window, mode='valid')
-        ax.plot(smooth, linewidth=2.0, color='#1D9E75',
+        ax.plot(episodes_x[window - 1:], smooth, linewidth=2.0, color='#1D9E75',
                 label=f"Smoothed (w={window})")
-    ax.axhline(y=threshold, color='r', linestyle='--', alpha=0.45,
-               linewidth=1, label=f"Threshold ({threshold})")
+    ax.axhline(train_avg, color='#6340A0', linestyle='-', alpha=0.7,
+               label=f"Avg ({train_avg:.1f})")
+    ax.axhline(eval_mean, color='#0F6E56', linestyle='--', alpha=0.85,
+               label=f"Greedy eval ({eval_mean:.1f})")
+    ax.axhline(threshold, color='r', linestyle=':', alpha=0.5)
     ax.set_xlabel("Episode")
-    ax.set_ylabel("Smoothed Return")
-    ax.set_title(f"Smoothed Return (window={window})")
-    ax.legend(fontsize=8)
+    ax.set_ylabel("Return")
+    ax.set_title(f"Smoothed (w={window})")
+    ax.legend(fontsize=7)
     ax.grid(alpha=0.3)
 
+    ax = axes[1, 0]
+    ax.bar(["Train\n(avg)", "Train\n(final 50)", f"Greedy\n({EVAL_N_EPISODES} eps)"],
+           [train_metrics["train_avg_reward"],
+            train_metrics["train_final_mean"],
+            eval_metrics["eval_mean"]],
+           yerr=[0, train_metrics["train_final_std"], eval_metrics["eval_std"]],
+           capsize=5, color=['#6340A0', '#878787', '#1D9E75'])
+    ax.axhline(threshold, color='r', linestyle='--', alpha=0.45, label=f"Solved ({threshold})")
+    ax.set_ylabel("Reward")
+    ax.set_title("Avg Reward Comparison")
+    ax.legend(fontsize=7)
+    ax.grid(axis='y', alpha=0.3)
+
+    ax = axes[1, 1]
+    ax.axis('off')
+    summary = (
+        f"Train metrics\n"
+        f"  Episodes     : {train_metrics['n_episodes']}\n"
+        f"  Steps        : {train_metrics['n_steps']}\n"
+        f"  Avg reward   : {train_metrics['train_avg_reward']:.2f}\n"
+        f"  Std reward   : {train_metrics['train_std_reward']:.2f}\n"
+        f"  AUC          : {train_metrics['train_auc']:.1f}\n"
+        f"  Final (50)   : {train_metrics['train_final_mean']:.2f} "
+        f"± {train_metrics['train_final_std']:.2f}\n\n"
+        f"Greedy eval ({EVAL_N_EPISODES} eps)\n"
+        f"  Mean         : {eval_metrics['eval_mean']:.2f} ± {eval_metrics['eval_std']:.2f}\n"
+        f"  Min / Med / Max : {eval_metrics['eval_min']:.0f} / "
+        f"{eval_metrics['eval_median']:.0f} / {eval_metrics['eval_max']:.0f}\n"
+        f"  Success rate : {100*eval_metrics['success_rate']:.1f}% "
+        f"({eval_metrics['n_solved']}/{eval_metrics['n_episodes']})\n"
+        f"  Ep length    : {eval_metrics['eval_length_mean']:.1f} "
+        f"± {eval_metrics['eval_length_std']:.1f}\n"
+        f"  Eval steps   : {eval_metrics['total_steps']}"
+    )
+    ax.text(0.05, 0.95, summary, transform=ax.transAxes, fontsize=9,
+            verticalalignment='top', fontfamily='monospace',
+            bbox=dict(boxstyle='round', facecolor='#f5f5f5', alpha=0.9))
+
     shaped_str = "ON" if cfg["shaped_reward"] else "OFF"
-    fig.text(0.5, -0.04,
-             f"hidden={cfg['hidden_sizes']}  "
-             f"policy_lr={cfg['policy_lr']}  value_lr={cfg['value_lr']}  "
-             f"γ={cfg['gamma']}  λ={cfg['lam']}  clip={cfg['clip_ratio']}  "
-             f"target_kl={cfg['target_kl']}  "
-             f"steps/epoch={cfg['steps_per_epoch']}  epochs={cfg['epochs']}  "
-             f"shaping={shaped_str}",
+    fig.text(0.5, 0.01,
+             f"hidden={cfg['hidden_sizes']}  lr_p={cfg['policy_lr']}  lr_v={cfg['value_lr']}  "
+             f"γ={cfg['gamma']}  λ={cfg['lam']}  steps/ep={cfg['steps_per_epoch']}  "
+             f"epochs={cfg['epochs']}  shaping={shaped_str}",
              ha='center', fontsize=7.5, color='#555555')
 
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0.03, 1, 0.96])
     fig_path = os.path.join(plots_dir, "ppo_curve.png")
     plt.savefig(fig_path, dpi=150, bbox_inches='tight')
     plt.show()
@@ -895,31 +667,16 @@ def train_ppo(env_name: str = "CartPole-v1"):
         "hidden_sizes": cfg["hidden_sizes"],
         "discrete_obs": cfg["discrete_obs"],
         "n_states":     cfg["n_states"],
+        "train_metrics": train_metrics,
+        "eval_metrics":  eval_metrics,
+        "eval_mean":     eval_metrics["eval_mean"],
+        "success_rate":  eval_metrics["success_rate"],
     }, pth_path)
     log_print(f"[Model] Saved → {pth_path}")
 
-    # ── Greedy evaluation ─────────────────────────────────────────────
-    eval_env  = gym.make(env_name)
-    raw_obs_e, _ = eval_env.reset(seed=SEED + 111)
-    obs_e     = preprocess_obs(raw_obs_e, cfg)
-    total_r   = 0.0
-    done_e    = False
-    actor.eval()
-    while not done_e:
-        with torch.no_grad():
-            logits = actor(torch.tensor(obs_e, dtype=torch.float32,
-                                        device=DEVICE).unsqueeze(0))
-            a_e    = int(torch.argmax(logits).item())
-        raw_obs_e, r_e, term_e, trunc_e, _ = eval_env.step(a_e)
-        obs_e   = preprocess_obs(raw_obs_e, cfg)
-        done_e  = term_e or trunc_e
-        total_r += r_e
-    log_print(f"[Eval] Greedy episode reward = {total_r}")
-    eval_env.close()
-
     log_file.close()
 
-    return actor, critic, all_rewards, mean_rewards
+    return actor, critic, all_rewards, mean_rewards, train_metrics, eval_metrics
 
 
 # ─────────────────────────────────────────────

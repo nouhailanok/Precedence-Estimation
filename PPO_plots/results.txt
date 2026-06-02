@@ -1,3 +1,72 @@
+(base) nouhailanokry@MBP-de-nouhaila Projet % python ppo_agent.py 
+
+============================================================
+  PPO — CartPole-v1  (no world model)
+  obs_dim=4 | n_actions=2 | device=cpu
+  hidden=(64, 64) | policy_lr=0.0003 | value_lr=0.001
+  steps/epoch=4000 | epochs=30
+  γ=0.99 | λ=0.97 | clip=0.2 | target_kl=0.01
+============================================================
+
+Epoch 001/30  MeanReturn=   20.41  MeanLen=  20.4  Episodes= 196  TotalEps=196
+Epoch 002/30  MeanReturn=   28.37  MeanLen=  28.4  Episodes= 141  TotalEps=337
+   [KL early stop] epoch=3 iter=20 kl=0.01503
+Epoch 003/30  MeanReturn=   34.48  MeanLen=  34.5  Episodes= 116  TotalEps=453
+Epoch 004/30  MeanReturn=   55.56  MeanLen=  55.6  Episodes=  72  TotalEps=525
+Epoch 005/30  MeanReturn=   74.07  MeanLen=  74.1  Episodes=  54  TotalEps=579
+Epoch 006/30  MeanReturn=  148.15  MeanLen= 148.1  Episodes=  27  TotalEps=606
+Epoch 007/30  MeanReturn=  160.00  MeanLen= 160.0  Episodes=  25  TotalEps=631
+Epoch 008/30  MeanReturn=  210.53  MeanLen= 210.5  Episodes=  19  TotalEps=650
+Epoch 009/30  MeanReturn=  266.67  MeanLen= 266.7  Episodes=  15  TotalEps=665
+Epoch 010/30  MeanReturn=  250.00  MeanLen= 250.0  Episodes=  16  TotalEps=681
+Epoch 011/30  MeanReturn=  307.69  MeanLen= 307.7  Episodes=  13  TotalEps=694
+Epoch 012/30  MeanReturn=  333.33  MeanLen= 333.3  Episodes=  12  TotalEps=706
+Epoch 013/30  MeanReturn=  307.69  MeanLen= 307.7  Episodes=  13  TotalEps=719
+Epoch 014/30  MeanReturn=  400.00  MeanLen= 400.0  Episodes=  10  TotalEps=729
+Epoch 015/30  MeanReturn=  400.00  MeanLen= 400.0  Episodes=  10  TotalEps=739
+Epoch 016/30  MeanReturn=  444.44  MeanLen= 444.4  Episodes=   9  TotalEps=748
+Epoch 017/30  MeanReturn=  400.00  MeanLen= 400.0  Episodes=  10  TotalEps=758
+Epoch 018/30  MeanReturn=  363.64  MeanLen= 363.6  Episodes=  11  TotalEps=769
+Epoch 019/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=777
+Epoch 020/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=785
+Epoch 021/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=793
+Epoch 022/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=801
+Epoch 023/30  MeanReturn=  400.00  MeanLen= 400.0  Episodes=  10  TotalEps=811
+Epoch 024/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=819
+Epoch 025/30  MeanReturn=  400.00  MeanLen= 400.0  Episodes=  10  TotalEps=829
+Epoch 026/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=837
+Epoch 027/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=845
+Epoch 028/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=853
+Epoch 029/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=861
+Epoch 030/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=869
+
+  [Eval] Greedy evaluation (30 episodes)...
+
+========================================================================
+  TRAINING METRICS
+========================================================================
+  Episodes        : 869
+  Steps (total)   : 120000
+  Avg reward      : 138.09
+  Std reward      : 175.47
+  AUC (learning)  : 119740.5
+  Final mean (50) : 480.00 ± 66.61
+
+========================================================================
+  GREEDY EVAL (30 episodes)
+========================================================================
+  Mean reward     : 500.00 ± 0.00
+  Min / Median / Max : 500 / 500 / 500
+  Success rate    : 100.0% (30/30) [≥ 500]
+  Mean ep length  : 500.0 ± 0.0
+  Eval steps      : 15000
+[Metrics] Saved → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/PPO_plots/CartPole-v1/ppo_metrics.json
+2026-06-02 20:15:06.339 python[30141:6865630] +[IMKClient subclass]: chose IMKClient_Modern
+2026-06-02 20:15:06.339 python[30141:6865630] +[IMKInputSession subclass]: chose IMKInputSession_Modern
+2026-06-02 20:15:19.938 python[30141:6865630] The class 'NSSavePanel' overrides the method identifier.  This method is implemented by class 'NSWindow'
+[Plot] Saved → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/PPO_plots/CartPole-v1/ppo_curve.png
+[Model] Saved → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/PPO_plots/CartPole-v1/ppo_agent.pth
+(base) nouhailanokry@MBP-de-nouhaila Projet % python ppo_agent.py --env CliffWalking-v1
 
 ============================================================
   PPO — CliffWalking-v1  (no world model)
@@ -141,5 +210,8 @@ Epoch 080/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=81
   Mean ep length  : 200.0 ± 0.0
   Eval steps      : 6000
 [Metrics] Saved → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/PPO_plots/CliffWalking-v1/ppo_metrics.json
+2026-06-02 20:17:05.507 python[30370:6867650] +[IMKClient subclass]: chose IMKClient_Modern
+2026-06-02 20:17:05.507 python[30370:6867650] +[IMKInputSession subclass]: chose IMKInputSession_Modern
+2026-06-02 20:17:21.835 python[30370:6867650] The class 'NSSavePanel' overrides the method identifier.  This method is implemented by class 'NSWindow'
 [Plot] Saved → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/PPO_plots/CliffWalking-v1/ppo_curve.png
 [Model] Saved → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/PPO_plots/CliffWalking-v1/ppo_agent.pth
