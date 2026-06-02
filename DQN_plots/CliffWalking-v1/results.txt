@@ -1,0 +1,48 @@
+(base) nouhailanokry@MBP-de-nouhaila Projet % python dqn_agent.py --env CliffWalking-v1
+
+============================================================
+  DQN — CliffWalking-v1  (no world model)
+  obs_dim=48 | n_actions=4 | device=cpu
+  hidden=(64, 64) | lr=0.001 | γ=0.99
+  buffer=20000 | batch=64 | warmup=500
+  ε: 1.0 → 0.01 over 5000 steps
+  target_update=200 | episodes=500
+  obs encoding: one-hot (48 states)
+============================================================
+
+Episode 0050/500  Return=   -27.0  Mean25=  -45.24  ε=0.093  Steps=4579
+Episode 0100/500  Return=  -115.0  Mean25=  -23.64  ε=0.010  Steps=5581
+Episode 0150/500  Return=   -15.0  Mean25=  -23.84  ε=0.010  Steps=6357
+Episode 0200/500  Return=   -15.0  Mean25=  -15.08  ε=0.010  Steps=7128
+Episode 0250/500  Return=   -15.0  Mean25=  -15.20  ε=0.010  Steps=7950
+Episode 0300/500  Return=   -15.0  Mean25=  -15.32  ε=0.010  Steps=8729
+Episode 0350/500  Return=   -15.0  Mean25=  -15.24  ε=0.010  Steps=9490
+Episode 0400/500  Return=   -15.0  Mean25=  -23.48  ε=0.010  Steps=10258
+Episode 0450/500  Return=   -15.0  Mean25=  -19.32  ε=0.010  Steps=11021
+Episode 0500/500  Return=   -15.0  Mean25=  -15.24  ε=0.010  Steps=11779
+
+  [Eval] Greedy evaluation (30 episodes)...
+
+========================================================================
+  TRAINING METRICS
+========================================================================
+  Episodes        : 500
+  Steps (total)   : 11779
+  Avg reward      : -70.29
+  Std reward      : 309.71
+  AUC (learning)  : -34193.5
+  Final mean (50) : -15.16 ± 0.50
+
+========================================================================
+  GREEDY EVAL (30 episodes)
+========================================================================
+  Mean reward     : -15.00 ± 0.00
+  Min / Median / Max : -15 / -15 / -15
+  Success rate    : 100.0% (30/30) [≥ -20]
+  Mean ep length  : 15.0 ± 0.0
+  Eval steps      : 450
+[Metrics] Saved → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/DQN_plots/CliffWalking-v1/dqn_metrics.json
+2026-06-02 20:40:43.650 python[33051:6894932] +[IMKClient subclass]: chose IMKClient_Modern
+2026-06-02 20:40:43.651 python[33051:6894932] +[IMKInputSession subclass]: chose IMKInputSession_Modern
+[Plot] Saved → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/DQN_plots/CliffWalking-v1/dqn_curve.png
+[Model] Saved → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/DQN_plots/CliffWalking-v1/dqn_agent.pth
