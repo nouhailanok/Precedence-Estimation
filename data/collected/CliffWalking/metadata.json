@@ -1,10 +1,10 @@
 {
     "env_name": "CliffWalking-v1",
-    "collection_date": "2026-06-01 16:30:52",
-    "total_steps": 100000,
-    "total_episodes": 26,
+    "collection_date": "2026-06-02 16:53:22",
+    "total_steps": 200000,
+    "total_episodes": 1012,
     "n_steps": 5,
-    "trained_ratio": 0.6,
+    "trained_ratio": 0.0,
     "seed": 42,
     "state_type": "discrete",
     "n_states": 48,
@@ -46,21 +46,21 @@
         "test": 0.2
     },
     "n_episodes": {
-        "train": 18,
-        "val": 2,
-        "test": 6
+        "train": 709,
+        "val": 101,
+        "test": 203
     },
     "n_steps_per_split": {
-        "train": 58743,
-        "val": 14810,
-        "test": 23835
+        "train": 140038,
+        "val": 19614,
+        "test": 40348
     },
-    "policy": "mixed (DQN \u03b5-greedy 60% + random 40%)",
+    "policy": "mixed (DQN \u03b5-greedy 0% + random 100%)",
     "reward_stats": {
-        "mean": -37154.38461538462,
-        "std": 41167.883117674784,
-        "min": -165696.0,
-        "max": -1368.0
+        "mean": -2079.717391304348,
+        "std": 678.3236014430115,
+        "min": -4655.0,
+        "max": -67.0
     },
     "files": [
         "transitions.npz",
