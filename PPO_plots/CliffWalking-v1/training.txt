@@ -32,24 +32,28 @@ Epoch 017/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=18
 Epoch 018/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=19
 Epoch 019/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=20
 Epoch 020/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=21
-   [KL early stop] epoch=21 iter=39 kl=0.01518
+   [KL early stop] epoch=21 iter=35 kl=0.01514
 Epoch 021/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=22
-   [KL early stop] epoch=22 iter=41 kl=0.01537
+   [KL early stop] epoch=22 iter=35 kl=0.01510
 Epoch 022/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=23
 Epoch 023/80  MeanReturn=-4198.00  MeanLen=4000.0  Episodes=   1  TotalEps=24
 Epoch 024/80  MeanReturn=-4198.00  MeanLen=4000.0  Episodes=   1  TotalEps=25
 Epoch 025/80  MeanReturn=-4198.00  MeanLen=4000.0  Episodes=   1  TotalEps=26
-Epoch 026/80  MeanReturn=-4198.00  MeanLen=4000.0  Episodes=   1  TotalEps=27
-   [KL early stop] epoch=27 iter=66 kl=0.01528
+   [KL early stop] epoch=26 iter=63 kl=0.01501
+Epoch 026/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=27
 Epoch 027/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=28
 Epoch 028/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=29
-   [KL early stop] epoch=29 iter=18 kl=0.01532
-Epoch 029/80  MeanReturn=-4396.00  MeanLen=4000.0  Episodes=   1  TotalEps=30
+Epoch 029/80  MeanReturn=-4099.00  MeanLen=4000.0  Episodes=   1  TotalEps=30
+   [KL early stop] epoch=30 iter=49 kl=0.01531
 Epoch 030/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=31
 Epoch 031/80  MeanReturn=-4099.00  MeanLen=4000.0  Episodes=   1  TotalEps=32
+   [KL early stop] epoch=32 iter=52 kl=0.01557
 Epoch 032/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=33
+   [KL early stop] epoch=33 iter=58 kl=0.01531
 Epoch 033/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=34
+   [KL early stop] epoch=34 iter=55 kl=0.01548
 Epoch 034/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=35
+   [KL early stop] epoch=35 iter=42 kl=0.01588
 Epoch 035/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=36
 Epoch 036/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=37
 Epoch 037/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=38
@@ -59,76 +63,83 @@ Epoch 040/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=41
 Epoch 041/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=42
 Epoch 042/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=43
 Epoch 043/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=44
+   [KL early stop] epoch=44 iter=70 kl=0.01528
 Epoch 044/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=45
 Epoch 045/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=46
-Epoch 046/80  MeanReturn=-1366.33  MeanLen=1333.3  Episodes=   3  TotalEps=49
-   [KL early stop] epoch=47 iter=40 kl=0.01506
-Epoch 047/80  MeanReturn=-1366.33  MeanLen=1333.3  Episodes=   3  TotalEps=52
-Epoch 048/80  MeanReturn= -683.17  MeanLen= 666.7  Episodes=   6  TotalEps=58
-Epoch 049/80  MeanReturn= -266.67  MeanLen= 266.7  Episodes=  15  TotalEps=73
-Epoch 050/80  MeanReturn= -191.13  MeanLen= 173.9  Episodes=  23  TotalEps=96
-   [KL early stop] epoch=51 iter=10 kl=0.01668
-Epoch 051/80  MeanReturn=  -93.02  MeanLen=  93.0  Episodes=  43  TotalEps=139
-   [KL early stop] epoch=52 iter=13 kl=0.01528
-Epoch 052/80  MeanReturn=  -74.10  MeanLen=  64.5  Episodes=  62  TotalEps=201
-   [KL early stop] epoch=53 iter=11 kl=0.01591
-Epoch 053/80  MeanReturn=  -47.11  MeanLen=  46.0  Episodes=  87  TotalEps=288
-   [KL early stop] epoch=54 iter=11 kl=0.01641
-Epoch 054/80  MeanReturn=  -39.78  MeanLen=  35.4  Episodes= 113  TotalEps=401
-   [KL early stop] epoch=55 iter=9 kl=0.01752
-Epoch 055/80  MeanReturn=  -31.14  MeanLen=  29.0  Episodes= 138  TotalEps=539
-   [KL early stop] epoch=56 iter=21 kl=0.01526
-Epoch 056/80  MeanReturn=  -28.36  MeanLen=  23.7  Episodes= 169  TotalEps=708
-Epoch 057/80  MeanReturn=  -21.31  MeanLen=  20.3  Episodes= 197  TotalEps=905
-   [KL early stop] epoch=58 iter=8 kl=0.01660
-Epoch 058/80  MeanReturn=  -18.43  MeanLen=  18.4  Episodes= 217  TotalEps=1122
-   [KL early stop] epoch=59 iter=12 kl=0.01510
-Epoch 059/80  MeanReturn=  -17.71  MeanLen=  16.9  Episodes= 237  TotalEps=1359
-Epoch 060/80  MeanReturn=  -16.14  MeanLen=  15.7  Episodes= 254  TotalEps=1613
-Epoch 061/80  MeanReturn=  -15.44  MeanLen=  15.4  Episodes= 259  TotalEps=1872
-Epoch 062/80  MeanReturn=  -16.02  MeanLen=  15.3  Episodes= 262  TotalEps=2134
-Epoch 063/80  MeanReturn=  -15.09  MeanLen=  15.1  Episodes= 265  TotalEps=2399
-Epoch 064/80  MeanReturn=  -15.35  MeanLen=  15.0  Episodes= 267  TotalEps=2666
-Epoch 065/80  MeanReturn=  -15.24  MeanLen=  14.9  Episodes= 269  TotalEps=2935
-Epoch 066/80  MeanReturn=  -15.13  MeanLen=  14.8  Episodes= 271  TotalEps=3206
-Epoch 067/80  MeanReturn=  -15.07  MeanLen=  14.7  Episodes= 272  TotalEps=3478
-   [KL early stop] epoch=68 iter=10 kl=0.01503
-Epoch 068/80  MeanReturn=  -14.76  MeanLen=  14.8  Episodes= 271  TotalEps=3749
-   [KL early stop] epoch=69 iter=7 kl=0.01558
-Epoch 069/80  MeanReturn=  -14.13  MeanLen=  14.1  Episodes= 283  TotalEps=4032
-   [KL early stop] epoch=70 iter=12 kl=0.01519
-Epoch 070/80  MeanReturn=  -13.89  MeanLen=  13.6  Episodes= 295  TotalEps=4327
-Epoch 071/80  MeanReturn=  -13.16  MeanLen=  13.2  Episodes= 304  TotalEps=4631
-Epoch 072/80  MeanReturn=  -12.99  MeanLen=  13.0  Episodes= 308  TotalEps=4939
-Epoch 073/80  MeanReturn=  -13.63  MeanLen=  13.0  Episodes= 308  TotalEps=5247
-Epoch 074/80  MeanReturn=  -13.31  MeanLen=  13.0  Episodes= 308  TotalEps=5555
-Epoch 075/80  MeanReturn=  -12.99  MeanLen=  13.0  Episodes= 308  TotalEps=5863
-Epoch 076/80  MeanReturn=  -13.03  MeanLen=  13.0  Episodes= 307  TotalEps=6170
-Epoch 077/80  MeanReturn=  -12.99  MeanLen=  13.0  Episodes= 308  TotalEps=6478
-Epoch 078/80  MeanReturn=  -12.99  MeanLen=  13.0  Episodes= 308  TotalEps=6786
-Epoch 079/80  MeanReturn=  -13.31  MeanLen=  13.0  Episodes= 308  TotalEps=7094
-Epoch 080/80  MeanReturn=  -12.99  MeanLen=  13.0  Episodes= 308  TotalEps=7402
+   [KL early stop] epoch=46 iter=20 kl=0.01762
+Epoch 046/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=47
+Epoch 047/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=48
+Epoch 048/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=49
+   [KL early stop] epoch=49 iter=32 kl=0.01501
+Epoch 049/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=50
+Epoch 050/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=51
+   [KL early stop] epoch=51 iter=31 kl=0.01592
+Epoch 051/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=52
+Epoch 052/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=53
+   [KL early stop] epoch=53 iter=45 kl=0.01529
+Epoch 053/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=54
+Epoch 054/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=55
+Epoch 055/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=56
+   [KL early stop] epoch=56 iter=29 kl=0.01518
+Epoch 056/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=57
+   [KL early stop] epoch=57 iter=30 kl=0.01516
+Epoch 057/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=58
+   [KL early stop] epoch=58 iter=55 kl=0.01540
+Epoch 058/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=59
+   [KL early stop] epoch=59 iter=68 kl=0.01503
+Epoch 059/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=60
+   [KL early stop] epoch=60 iter=66 kl=0.01553
+Epoch 060/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=61
+Epoch 061/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=62
+Epoch 062/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=63
+Epoch 063/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=64
+Epoch 064/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=65
+   [KL early stop] epoch=65 iter=14 kl=0.01582
+Epoch 065/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=66
+   [KL early stop] epoch=66 iter=17 kl=0.01637
+Epoch 066/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=67
+Epoch 067/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=68
+Epoch 068/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=69
+Epoch 069/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=70
+   [KL early stop] epoch=70 iter=33 kl=0.01515
+Epoch 070/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=71
+   [KL early stop] epoch=71 iter=26 kl=0.01560
+Epoch 071/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=72
+   [KL early stop] epoch=72 iter=48 kl=0.01538
+Epoch 072/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=73
+   [KL early stop] epoch=73 iter=63 kl=0.01531
+Epoch 073/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=74
+   [KL early stop] epoch=74 iter=23 kl=0.01607
+Epoch 074/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=75
+Epoch 075/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=76
+Epoch 076/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=77
+   [KL early stop] epoch=77 iter=33 kl=0.01564
+Epoch 077/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=78
+   [KL early stop] epoch=78 iter=28 kl=0.01643
+Epoch 078/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=79
+Epoch 079/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=80
+Epoch 080/80  MeanReturn=-4000.00  MeanLen=4000.0  Episodes=   1  TotalEps=81
 
   [Eval] Greedy evaluation (30 episodes)...
 
 ========================================================================
   TRAINING METRICS
 ========================================================================
-  Episodes        : 7402
+  Episodes        : 81
   Steps (total)   : 320000
-  Avg reward      : -53.02
-  Std reward      : 595.18
-  AUC (learning)  : -375327.5
-  Final mean (50) : -12.88 ± 0.84
+  Avg reward      : -4782.95
+  Std reward      : 4037.01
+  AUC (learning)  : -368282.0
+  Final mean (50) : -4001.98 ± 13.86
 
 ========================================================================
   GREEDY EVAL (30 episodes)
 ========================================================================
-  Mean reward     : -13.00 ± 0.00
-  Min / Median / Max : -13 / -13 / -13
-  Success rate    : 100.0% (30/30) [≥ -20]
-  Mean ep length  : 13.0 ± 0.0
-  Eval steps      : 390
-[Metrics] Saved → C:\Users\Imane\OneDrive\Bureau\IAGI-S4\RL\Projet\Precedence-Estimation\PPO_plots\CliffWalking-v1\ppo_metrics.json
-[Plot] Saved → C:\Users\Imane\OneDrive\Bureau\IAGI-S4\RL\Projet\Precedence-Estimation\PPO_plots\CliffWalking-v1\ppo_curve.png
-[Model] Saved → C:\Users\Imane\OneDrive\Bureau\IAGI-S4\RL\Projet\Precedence-Estimation\PPO_plots\CliffWalking-v1\ppo_agent.pth
+  Mean reward     : -200.00 ± 0.00
+  Min / Median / Max : -200 / -200 / -200
+  Success rate    : 0.0% (0/30) [≥ -20]
+  Mean ep length  : 200.0 ± 0.0
+  Eval steps      : 6000
+[Metrics] Saved → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/PPO_plots/CliffWalking-v1/ppo_metrics.json
+[Plot] Saved → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/PPO_plots/CliffWalking-v1/ppo_curve.png
+[Model] Saved → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/PPO_plots/CliffWalking-v1/ppo_agent.pth
