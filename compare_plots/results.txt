@@ -1,0 +1,152 @@
+[Running] python -u "/Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/dnn_compare_mixed_policy.py"
+Device : cpu  |  Loss : MSE  |  5 seeds/architecture
+
+Train=70,000  Val=10,000  Test=20,000
+|Δs| moyen = 0.22404  |s'| moyen = 0.79584
+
+════════════════════════════════════════════════════════════
+  Small     [64-64]  (5 seeds)
+════════════════════════════════════════════════════════════
+  seed 0 ...     early stop @ epoch 46  best_val=0.000000
+MSE=0.0000004  RMSE=0.000364  R²=1.0000  epochs=46
+  seed 1 ...     early stop @ epoch 38  best_val=0.000001
+MSE=0.0000010  RMSE=0.000579  R²=1.0000  epochs=38
+  seed 2 ...     early stop @ epoch 42  best_val=0.000000
+MSE=0.0000003  RMSE=0.000327  R²=1.0000  epochs=42
+  seed 3 ...     early stop @ epoch 42  best_val=0.000001
+MSE=0.0000006  RMSE=0.000429  R²=1.0000  epochs=42
+  seed 4 ...     early stop @ epoch 42  best_val=0.000000
+MSE=0.0000004  RMSE=0.000379  R²=1.0000  epochs=42
+
+════════════════════════════════════════════════════════════
+  Medium    [128-128]  (5 seeds)
+════════════════════════════════════════════════════════════
+  seed 0 ...     early stop @ epoch 54  best_val=0.000000
+MSE=0.0000004  RMSE=0.000385  R²=1.0000  epochs=54
+  seed 1 ...     early stop @ epoch 39  best_val=0.000001
+MSE=0.0000011  RMSE=0.000606  R²=1.0000  epochs=39
+  seed 2 ...     early stop @ epoch 39  best_val=0.000001
+MSE=0.0000010  RMSE=0.000572  R²=1.0000  epochs=39
+  seed 3 ...     early stop @ epoch 41  best_val=0.000001
+MSE=0.0000008  RMSE=0.000521  R²=1.0000  epochs=41
+  seed 4 ...     early stop @ epoch 32  best_val=0.000002
+MSE=0.0000025  RMSE=0.000953  R²=1.0000  epochs=32
+
+════════════════════════════════════════════════════════════
+  Large     [256-256]  (5 seeds)
+════════════════════════════════════════════════════════════
+  seed 0 ...     early stop @ epoch 48  best_val=0.000001
+MSE=0.0000008  RMSE=0.000550  R²=1.0000  epochs=48
+  seed 1 ...     early stop @ epoch 37  best_val=0.000001
+MSE=0.0000008  RMSE=0.000534  R²=1.0000  epochs=37
+  seed 2 ...     early stop @ epoch 46  best_val=0.000000
+MSE=0.0000004  RMSE=0.000356  R²=1.0000  epochs=46
+  seed 3 ...     early stop @ epoch 37  best_val=0.000001
+MSE=0.0000007  RMSE=0.000486  R²=1.0000  epochs=37
+  seed 4 ...     early stop @ epoch 42  best_val=0.000001
+MSE=0.0000006  RMSE=0.000446  R²=1.0000  epochs=42
+
+════════════════════════════════════════════════════════════
+  Deep3     [64-64-64]  (5 seeds)
+════════════════════════════════════════════════════════════
+  seed 0 ...     early stop @ epoch 41  best_val=0.000001
+MSE=0.0000006  RMSE=0.000413  R²=1.0000  epochs=41
+  seed 1 ...     early stop @ epoch 42  best_val=0.000001
+MSE=0.0000007  RMSE=0.000463  R²=1.0000  epochs=42
+  seed 2 ...     early stop @ epoch 40  best_val=0.000001
+MSE=0.0000008  RMSE=0.000499  R²=1.0000  epochs=40
+  seed 3 ...     early stop @ epoch 51  best_val=0.000000
+MSE=0.0000004  RMSE=0.000315  R²=1.0000  epochs=51
+  seed 4 ...     early stop @ epoch 39  best_val=0.000001
+MSE=0.0000008  RMSE=0.000417  R²=1.0000  epochs=39
+
+════════════════════════════════════════════════════════════
+  Deep4     [256-256-128-64-32]  (5 seeds)
+════════════════════════════════════════════════════════════
+  seed 0 ...     early stop @ epoch 20  best_val=0.000002
+MSE=0.0000025  RMSE=0.000886  R²=1.0000  epochs=20
+  seed 1 ...     early stop @ epoch 45  best_val=0.000000
+MSE=0.0000003  RMSE=0.000303  R²=1.0000  epochs=45
+  seed 2 ...     early stop @ epoch 30  best_val=0.000000
+MSE=0.0000004  RMSE=0.000375  R²=1.0000  epochs=30
+  seed 3 ...     early stop @ epoch 27  best_val=0.000001
+MSE=0.0000007  RMSE=0.000467  R²=1.0000  epochs=27
+  seed 4 ...     early stop @ epoch 30  best_val=0.000001
+MSE=0.0000006  RMSE=0.000437  R²=1.0000  epochs=30
+
+════════════════════════════════════════════════════════════
+  ELU       [64-64]  (5 seeds)
+════════════════════════════════════════════════════════════
+  seed 0 ...     early stop @ epoch 37  best_val=0.000000
+MSE=0.0000004  RMSE=0.000331  R²=1.0000  epochs=37
+  seed 1 ...     early stop @ epoch 33  best_val=0.000001
+MSE=0.0000007  RMSE=0.000544  R²=1.0000  epochs=33
+  seed 2 ...     early stop @ epoch 35  best_val=0.000001
+MSE=0.0000008  RMSE=0.000557  R²=1.0000  epochs=35
+  seed 3 ...     early stop @ epoch 28  best_val=0.000001
+MSE=0.0000013  RMSE=0.000634  R²=1.0000  epochs=28
+  seed 4 ...     early stop @ epoch 45  best_val=0.000000
+MSE=0.0000003  RMSE=0.000286  R²=1.0000  epochs=45
+
+════════════════════════════════════════════════════════════
+  BatchNorm [128-128]  (5 seeds)
+════════════════════════════════════════════════════════════
+  seed 0 ...     early stop @ epoch 83  best_val=0.000008
+MSE=0.0000073  RMSE=0.001462  R²=1.0000  epochs=83
+  seed 1 ...     early stop @ epoch 107  best_val=0.000007
+MSE=0.0000067  RMSE=0.001412  R²=1.0000  epochs=107
+  seed 2 ...     early stop @ epoch 82  best_val=0.000008
+MSE=0.0000079  RMSE=0.001554  R²=1.0000  epochs=82
+  seed 3 ...     early stop @ epoch 75  best_val=0.000011
+MSE=0.0000110  RMSE=0.001888  R²=1.0000  epochs=75
+  seed 4 ...     early stop @ epoch 93  best_val=0.000007
+MSE=0.0000071  RMSE=0.001490  R²=1.0000  epochs=93
+
+════════════════════════════════════════════════════════════
+  Dropout   [128-128]  (5 seeds)
+════════════════════════════════════════════════════════════
+  seed 0 ...     early stop @ epoch 55  best_val=0.000009
+MSE=0.0000090  RMSE=0.001465  R²=1.0000  epochs=55
+  seed 1 ...     early stop @ epoch 60  best_val=0.000003
+MSE=0.0000035  RMSE=0.001124  R²=1.0000  epochs=60
+  seed 2 ...     early stop @ epoch 59  best_val=0.000005
+MSE=0.0000047  RMSE=0.001262  R²=1.0000  epochs=59
+  seed 3 ...     early stop @ epoch 43  best_val=0.000006
+MSE=0.0000063  RMSE=0.001396  R²=1.0000  epochs=43
+  seed 4 ...     early stop @ epoch 57  best_val=0.000004
+MSE=0.0000046  RMSE=0.001268  R²=1.0000  epochs=57
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════
+Architecture                     MSE_Δs       ±std    RMSE_phys       R²    Acc_ε   Epochs   Params
+───────────────────────────────────────────────────────────────────────────────────────────────────
+🥇 Small     [64-64]           0.0000005  0.0000002     0.000416   1.0000   0.9999     42.0    4,868
+🥈 Deep3     [64-64-64]        0.0000007  0.0000002     0.000421   1.0000   0.9999     42.6    9,028
+🥉 Large     [256-256]         0.0000007  0.0000002     0.000474   1.0000   0.9998     42.0   68,612
+   ELU       [64-64]           0.0000007  0.0000004     0.000470   1.0000   0.9997     35.6    4,868
+   Deep4     [256-256-128-64-32]    0.0000009  0.0000008     0.000493   1.0000   0.9998     30.4  110,948
+   Medium    [128-128]         0.0000012  0.0000007     0.000607   1.0000   0.9994     41.0   17,924
+   Dropout   [128-128]         0.0000056  0.0000019     0.001303   1.0000   0.9899     54.8   17,924
+   BatchNorm [128-128]         0.0000080  0.0000015     0.001561   1.0000   0.9717     88.0   18,436
+═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+✓ Meilleure architecture : Small     [64-64]
+  MSE Δs  = 0.0000005 ± 0.0000002
+  RMSE phys = 0.000416
+  R²        = 1.000000
+2026-06-03 14:02:24.441 python[29245:360237] +[IMKClient subclass]: chose IMKClient_Modern
+2026-06-03 14:02:24.441 python[29245:360237] +[IMKInputSession subclass]: chose IMKInputSession_Modern
+Sauvegardé → compare_mse_delta.png
+Sauvegardé → compare_rmse_phys.png
+Sauvegardé → compare_plots/radar_comparison.png
+Sauvegardé → compare_plots/rmse_per_dim_heatmap.png
+
+Résultats sauvegardés → compare_plots/comparison_summary.npy
+
+Figures générées :
+  compare_mse_delta.png     — MSE sur Δs toutes architectures
+  compare_rmse_phys.png     — RMSE physique toutes architectures
+  radar_comparison.png      — Radar top 6 (multi-critères)
+  rmse_per_dim_heatmap.png  — RMSE par dimension top 5
+
+[Done] exited with code=0 in 5124.675 seconds
+
