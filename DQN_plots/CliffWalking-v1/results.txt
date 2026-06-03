@@ -42,7 +42,7 @@ Episode 0500/500  Return=   -15.0  Mean25=  -15.24  ε=0.010  Steps=11779
   Mean ep length  : 15.0 ± 0.0
   Eval steps      : 450
 [Metrics] Saved → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/DQN_plots/CliffWalking-v1/dqn_metrics.json
-2026-06-02 20:40:43.650 python[33051:6894932] +[IMKClient subclass]: chose IMKClient_Modern
-2026-06-02 20:40:43.651 python[33051:6894932] +[IMKInputSession subclass]: chose IMKInputSession_Modern
+2026-06-03 02:52:56.514 python[57203:7193041] +[IMKClient subclass]: chose IMKClient_Modern
+2026-06-03 02:52:56.514 python[57203:7193041] +[IMKInputSession subclass]: chose IMKInputSession_Modern
 [Plot] Saved → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/DQN_plots/CliffWalking-v1/dqn_curve.png
 [Model] Saved → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/DQN_plots/CliffWalking-v1/dqn_agent.pth
