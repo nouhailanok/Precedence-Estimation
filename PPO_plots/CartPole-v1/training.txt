@@ -14,42 +14,42 @@ Epoch 003/30  MeanReturn=   34.48  MeanLen=  34.5  Episodes= 116  TotalEps=453
 Epoch 004/30  MeanReturn=   55.56  MeanLen=  55.6  Episodes=  72  TotalEps=525
 Epoch 005/30  MeanReturn=   74.07  MeanLen=  74.1  Episodes=  54  TotalEps=579
 Epoch 006/30  MeanReturn=  148.15  MeanLen= 148.1  Episodes=  27  TotalEps=606
-Epoch 007/30  MeanReturn=  160.00  MeanLen= 160.0  Episodes=  25  TotalEps=631
-Epoch 008/30  MeanReturn=  210.53  MeanLen= 210.5  Episodes=  19  TotalEps=650
-Epoch 009/30  MeanReturn=  266.67  MeanLen= 266.7  Episodes=  15  TotalEps=665
-Epoch 010/30  MeanReturn=  250.00  MeanLen= 250.0  Episodes=  16  TotalEps=681
-Epoch 011/30  MeanReturn=  307.69  MeanLen= 307.7  Episodes=  13  TotalEps=694
-Epoch 012/30  MeanReturn=  333.33  MeanLen= 333.3  Episodes=  12  TotalEps=706
-Epoch 013/30  MeanReturn=  307.69  MeanLen= 307.7  Episodes=  13  TotalEps=719
-Epoch 014/30  MeanReturn=  400.00  MeanLen= 400.0  Episodes=  10  TotalEps=729
-Epoch 015/30  MeanReturn=  400.00  MeanLen= 400.0  Episodes=  10  TotalEps=739
-Epoch 016/30  MeanReturn=  444.44  MeanLen= 444.4  Episodes=   9  TotalEps=748
-Epoch 017/30  MeanReturn=  400.00  MeanLen= 400.0  Episodes=  10  TotalEps=758
-Epoch 018/30  MeanReturn=  363.64  MeanLen= 363.6  Episodes=  11  TotalEps=769
-Epoch 019/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=777
-Epoch 020/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=785
-Epoch 021/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=793
-Epoch 022/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=801
-Epoch 023/30  MeanReturn=  400.00  MeanLen= 400.0  Episodes=  10  TotalEps=811
-Epoch 024/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=819
-Epoch 025/30  MeanReturn=  400.00  MeanLen= 400.0  Episodes=  10  TotalEps=829
-Epoch 026/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=837
-Epoch 027/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=845
-Epoch 028/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=853
-Epoch 029/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=861
-Epoch 030/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=869
+Epoch 007/30  MeanReturn=  181.82  MeanLen= 181.8  Episodes=  22  TotalEps=628
+Epoch 008/30  MeanReturn=  210.53  MeanLen= 210.5  Episodes=  19  TotalEps=647
+Epoch 009/30  MeanReturn=  210.53  MeanLen= 210.5  Episodes=  19  TotalEps=666
+Epoch 010/30  MeanReturn=  222.22  MeanLen= 222.2  Episodes=  18  TotalEps=684
+Epoch 011/30  MeanReturn=  235.29  MeanLen= 235.3  Episodes=  17  TotalEps=701
+Epoch 012/30  MeanReturn=  363.64  MeanLen= 363.6  Episodes=  11  TotalEps=712
+Epoch 013/30  MeanReturn=  363.64  MeanLen= 363.6  Episodes=  11  TotalEps=723
+Epoch 014/30  MeanReturn=  333.33  MeanLen= 333.3  Episodes=  12  TotalEps=735
+Epoch 015/30  MeanReturn=  444.44  MeanLen= 444.4  Episodes=   9  TotalEps=744
+Epoch 016/30  MeanReturn=  444.44  MeanLen= 444.4  Episodes=   9  TotalEps=753
+Epoch 017/30  MeanReturn=  363.64  MeanLen= 363.6  Episodes=  11  TotalEps=764
+Epoch 018/30  MeanReturn=  444.44  MeanLen= 444.4  Episodes=   9  TotalEps=773
+Epoch 019/30  MeanReturn=  444.44  MeanLen= 444.4  Episodes=   9  TotalEps=782
+Epoch 020/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=790
+Epoch 021/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=798
+Epoch 022/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=806
+Epoch 023/30  MeanReturn=  444.44  MeanLen= 444.4  Episodes=   9  TotalEps=815
+Epoch 024/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=823
+Epoch 025/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=831
+Epoch 026/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=839
+Epoch 027/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=847
+Epoch 028/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=855
+Epoch 029/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=863
+Epoch 030/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=871
 
   [Eval] Greedy evaluation (30 episodes)...
 
 ========================================================================
   TRAINING METRICS
 ========================================================================
-  Episodes        : 869
+  Episodes        : 871
   Steps (total)   : 120000
-  Avg reward      : 138.09
-  Std reward      : 175.47
+  Avg reward      : 137.77
+  Std reward      : 173.93
   AUC (learning)  : 119740.5
-  Final mean (50) : 480.00 ± 66.61
+  Final mean (50) : 500.00 ± 0.00
 
 ========================================================================
   GREEDY EVAL (30 episodes)
@@ -59,6 +59,6 @@ Epoch 030/30  MeanReturn=  500.00  MeanLen= 500.0  Episodes=   8  TotalEps=869
   Success rate    : 100.0% (30/30) [≥ 500]
   Mean ep length  : 500.0 ± 0.0
   Eval steps      : 15000
-[Metrics] Saved → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/PPO_plots/CartPole-v1/ppo_metrics.json
-[Plot] Saved → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/PPO_plots/CartPole-v1/ppo_curve.png
-[Model] Saved → /Users/nouhailanokry/Desktop/REINFORCEMENT LEARNING/Projet/PPO_plots/CartPole-v1/ppo_agent.pth
+[Metrics] Saved → C:\Users\Imane\OneDrive\Bureau\IAGI-S4\RL\Projet\Precedence-Estimation\PPO_plots\CartPole-v1\ppo_metrics.json
+[Plot] Saved → C:\Users\Imane\OneDrive\Bureau\IAGI-S4\RL\Projet\Precedence-Estimation\PPO_plots\CartPole-v1\ppo_curve.png
+[Model] Saved → C:\Users\Imane\OneDrive\Bureau\IAGI-S4\RL\Projet\Precedence-Estimation\PPO_plots\CartPole-v1\ppo_agent.pth
