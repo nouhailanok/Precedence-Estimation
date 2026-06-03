@@ -186,21 +186,16 @@ class TransitionDNN(nn.Module):
 # Clé = nom affiché  |  Valeur = lambda qui construit le réseau
 MODEL_ZOO = {
     # ── Largeur ──
-    "Tiny      [32-32]":          lambda: build_mlp([32, 32]),
     "Small     [64-64]":          lambda: build_mlp([64, 64]),
     "Medium    [128-128]":        lambda: build_mlp([128, 128]),
     "Large     [256-256]":        lambda: build_mlp([256, 256]),
     # ── Profondeur ──
     "Deep3     [64-64-64]":       lambda: build_mlp([64, 64, 64]),
-    "Deep4     [128-128-64-32]":  lambda: build_mlp([128, 128, 64, 32]),
-    "Deep5     [256-256-128-64-32]": lambda: build_mlp([256, 256, 128, 64, 32]),
-    # ── Entonnoir ──
-    "Funnel    [128-64-32]":      lambda: build_mlp([128, 64, 32]),
-    "Funnel2   [256-128-64]":     lambda: build_mlp([256, 128, 64]),
+    "Deep4     [256-256-128-64-32]": lambda: build_mlp([256, 256, 128, 64, 32]),
+
     # ── Activations ──
-    "LeakyReLU [64-64]":          lambda: build_mlp([64, 64], activation="leakyrelu"),
     "ELU       [64-64]":          lambda: build_mlp([64, 64], activation="elu"),
-    "Tanh      [64-64]":          lambda: build_mlp([64, 64], activation="tanh"),
+    
     # ── Régularisation ──
     "BatchNorm [128-128]":        lambda: build_mlp([128, 128], batchnorm=True),
     "Dropout   [128-128]":        lambda: build_mlp([128, 128], dropout=0.1),
