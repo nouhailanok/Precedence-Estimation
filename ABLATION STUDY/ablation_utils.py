@@ -44,8 +44,27 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 N_SEEDS_DEFAULT = 3
 SEEDS_DEFAULT = [42, 123, 456]
 N_EPISODES_ABLATION = 300
-EVAL_N_EPISODES = 30
+EVAL_N_EPISODES = 30          # protocole training / notebooks full
+EVAL_N_EPISODES_REPORT = 100  # ablation : eval greedy plus stable (bar chart)
 FINAL_WINDOW = 50
+
+# Profils PPO minimaux pour eval greedy (alignés ppo_agent.py)
+PPO_EVAL_PROFILES = {
+    "CartPole-v1": {
+        "hidden_sizes": (64, 64),
+        "max_steps_per_episode": 500,
+        "solve_threshold": 500.0,
+        "discrete_obs": False,
+        "n_states": None,
+    },
+    "CliffWalking-v1": {
+        "hidden_sizes": (64, 64),
+        "max_steps_per_episode": 200,
+        "solve_threshold": -20.0,
+        "discrete_obs": True,
+        "n_states": 48,
+    },
+}
 
 ENV_SPECS = {
     "CartPole-v1": {
@@ -62,7 +81,10 @@ ENV_SPECS = {
         "ppo_baseline_metrics": PROJECT_ROOT / "PPO_plots" / "CartPole-v1" / "ppo_metrics.json",
         "dqn_prec_metrics": PROJECT_ROOT / "world_model" / "checkpoints_dqn_with_precedence_CartPole" / "dqn_with_precedence_CartPole_metrics.json",
         "dqn_prec_legacy": PROJECT_ROOT / "world_model" / "checkpoints_with_precedence" / "dqn_with_precedence_results.json",
+        "dqn_prec_ckpt_dir": PROJECT_ROOT / "world_model" / "checkpoints_dqn_with_precedence_CartPole",
+        "dqn_prec_ckpt_prefix": "dqn_prec_cartpole_config",
         "ppo_prec_metrics": PROJECT_ROOT / "world_model" / "checkpoints_ppo_with_precedence" / "ppo_with_precedence_results.json",
+        "ppo_prec_ckpt_dir": PROJECT_ROOT / "world_model" / "checkpoints_ppo_with_precedence",
     },
     "CliffWalking-v1": {
         "solve_threshold": -20.0,
@@ -80,7 +102,10 @@ ENV_SPECS = {
         "ppo_baseline_metrics": PROJECT_ROOT / "PPO_plots" / "CliffWalking-v1" / "ppo_metrics.json",
         "dqn_prec_metrics": None,
         "dqn_prec_legacy": PROJECT_ROOT / "world_model" / "checkpoints_dqn_precedence_CliffWalking" / "dqn_precedence_cliffwalking_results.json",
+        "dqn_prec_ckpt_dir": None,
+        "dqn_prec_ckpt_prefix": None,
         "ppo_prec_metrics": PROJECT_ROOT / "world_model" / "checkpoints_ppo_precedence_CliffWalking" / "ppo_precedence_cliffwalking_results.json",
+        "ppo_prec_ckpt_dir": PROJECT_ROOT / "world_model" / "checkpoints_ppo_precedence_CliffWalking",
     },
 }
 
@@ -167,7 +192,9 @@ def load_baseline_metrics(algo: str, env_name: str) -> dict | None:
         "n_steps": data["train"].get("n_steps", 0),
         "eval_mean": data["eval"].get("eval_mean", 0),
         "eval_std": data["eval"].get("eval_std", 0),
+        "eval_n_episodes": data["eval"].get("n_episodes", EVAL_N_EPISODES),
         "success_rate": data["eval"].get("success_rate", 0),
+        "checkpoint": str(_baseline_checkpoint_path(algo, env_name) or ""),
         "source": str(path),
     }
     return entry
@@ -204,9 +231,27 @@ def load_precedence_config(algo: str, env_name: str, config: int) -> dict | None
         "n_episodes": len(rewards),
         "eval_mean": block.get("eval_mean", 0),
         "eval_std": block.get("eval_std", 0),
+        "eval_n_episodes": block.get("n_episodes", EVAL_N_EPISODES) if "eval_rewards" not in block else len(block.get("eval_rewards", [])) or EVAL_N_EPISODES,
         "success_rate": block.get("success_rate", 0),
+        "checkpoint": _precedence_checkpoint_path(algo, env_name, config),
         "source": str(spec.get("dqn_prec_metrics") or spec.get("ppo_prec_metrics") or spec.get("dqn_prec_legacy")),
     }
+
+
+def _precedence_checkpoint_path(algo: str, env_name: str, config: int) -> str | None:
+    spec = ENV_SPECS[env_name]
+    if algo == "dqn" and spec.get("dqn_prec_ckpt_dir"):
+        p = spec["dqn_prec_ckpt_dir"] / f"{spec['dqn_prec_ckpt_prefix']}{config}.pt"
+        return str(p) if p.exists() else None
+    if algo == "ppo" and spec.get("ppo_prec_ckpt_dir"):
+        p = spec["ppo_prec_ckpt_dir"] / f"ppo_config{config}.pth"
+        return str(p) if p.exists() else None
+    return None
+
+
+def _baseline_checkpoint_path(algo: str, env_name: str) -> Path | None:
+    p = PROJECT_ROOT / f"{algo.upper()}_plots" / env_name / f"{algo}_agent.pth"
+    return p if p.exists() else None
 
 
 def pick_best_wm_config(algo: str, env_name: str) -> int:
@@ -316,16 +361,55 @@ class CartPoleActionVerifier:
 
 
 class QNetwork(nn.Module):
-    def __init__(self, state_dim, action_dim, hidden=128):
+    def __init__(self, state_dim, action_dim, hidden_sizes=(128, 128)):
         super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(state_dim, hidden), nn.ReLU(),
-            nn.Linear(hidden, hidden), nn.ReLU(),
-            nn.Linear(hidden, action_dim),
-        )
+        if isinstance(hidden_sizes, int):
+            hidden_sizes = (hidden_sizes, hidden_sizes)
+        layers, prev = [], state_dim
+        for h in hidden_sizes:
+            layers += [nn.Linear(prev, h), nn.ReLU()]
+            prev = h
+        layers.append(nn.Linear(prev, action_dim))
+        self.net = nn.Sequential(*layers)
 
     def forward(self, x):
         return self.net(x)
+
+
+def _resolve_hidden_sizes(ckpt: dict, default=(64, 64)) -> tuple:
+    """Déduit hidden_sizes depuis métadonnées checkpoint ou poids q_net."""
+    h = ckpt.get("hidden_sizes") or ckpt.get("hidden")
+    if h is not None:
+        if isinstance(h, int):
+            return (h, h)
+        if isinstance(h, (list, tuple)):
+            return tuple(h)
+
+    sd = ckpt.get("q_net", ckpt)
+    if not isinstance(sd, dict):
+        return default
+
+    # Architecture Sequential: Linear(0), ReLU(1), Linear(2), ReLU(3), Linear(4)
+    w0 = sd.get("net.0.weight")
+    w2 = sd.get("net.2.weight")
+    if w0 is None or w2 is None:
+        return default
+    h1 = int(w0.shape[0])
+    h2 = int(w2.shape[0])
+    return (h1, h2) if h1 != h2 else (h1, h1)
+
+
+def _build_qnet_from_checkpoint(ckpt: dict, spec: dict) -> QNetwork:
+    state = ckpt["q_net"] if "q_net" in ckpt else ckpt
+    # obs_dim / n_actions depuis les tenseurs (plus fiable que les métadonnées)
+    w0 = state["net.0.weight"]
+    w_out = state["net.4.weight"]
+    obs_dim = int(w0.shape[1])
+    n_act = int(w_out.shape[0])
+    hidden = _resolve_hidden_sizes(ckpt, default=(int(w0.shape[0]), int(state["net.2.weight"].shape[0])))
+    q_net = QNetwork(obs_dim, n_act, hidden_sizes=hidden).to(DEVICE)
+    q_net.load_state_dict(state)
+    return q_net
 
 
 def _load_wm_cartpole(config, spec, device):
@@ -340,20 +424,53 @@ def _load_wm_cartpole(config, spec, device):
     return model
 
 
+def preprocess_obs_ppo(obs, ppo_cfg: dict) -> np.ndarray:
+    if ppo_cfg["discrete_obs"]:
+        vec = np.zeros(ppo_cfg["n_states"], dtype=np.float32)
+        vec[int(obs)] = 1.0
+        return vec
+    return np.asarray(obs, dtype=np.float32)
+
+
+class PPOActor(nn.Module):
+    def __init__(self, obs_dim, n_act, hidden=(64, 64)):
+        super().__init__()
+        layers, prev = [], obs_dim
+        for h in hidden:
+            layers += [nn.Linear(prev, h), nn.Tanh()]
+            prev = h
+        layers.append(nn.Linear(prev, n_act))
+        self.net = nn.Sequential(*layers)
+
+    def forward(self, obs):
+        return self.net(obs)
+
+
+def _obs_to_input(raw_obs, spec, state_mean, state_std):
+    if spec.get("discrete_obs"):
+        vec = np.zeros(spec["n_states"], dtype=np.float32)
+        idx = int(raw_obs[0]) if isinstance(raw_obs, (tuple, list, np.ndarray)) else int(raw_obs)
+        vec[idx] = 1.0
+        return vec
+    return ((np.asarray(raw_obs, dtype=np.float32) - state_mean) / (state_std + 1e-8))
+
+
 @torch.no_grad()
-def evaluate_dqn_greedy(q_net, env_name, state_mean, state_std, spec, device=DEVICE):
+def evaluate_dqn_greedy(q_net, env_name, state_mean, state_std, spec,
+                        n_episodes: int = EVAL_N_EPISODES,
+                        seed_offset: int = 1000, device=DEVICE):
     env = gym.make(env_name)
     rewards, lengths = [], []
     q_net.eval()
-    for ep in range(EVAL_N_EPISODES):
-        state, _ = env.reset(seed=SEEDS_DEFAULT[0] + 1000 + ep)
-        s = (state - state_mean) / (state_std + 1e-8)
+    for ep in range(n_episodes):
+        raw, _ = env.reset(seed=SEEDS_DEFAULT[0] + seed_offset + ep)
+        s = _obs_to_input(raw, spec, state_mean, state_std)
         ep_r, ep_len = 0.0, 0
         for _ in range(spec["max_steps"]):
             st = torch.FloatTensor(s).unsqueeze(0).to(device)
             a = int(q_net(st).argmax(1).item())
-            ns, r, term, trunc, _ = env.step(a)
-            s = (ns - state_mean) / (state_std + 1e-8)
+            raw, r, term, trunc, _ = env.step(a)
+            s = _obs_to_input(raw, spec, state_mean, state_std)
             ep_r += r
             ep_len += 1
             if term or trunc:
@@ -372,8 +489,115 @@ def evaluate_dqn_greedy(q_net, env_name, state_mean, state_std, spec, device=DEV
         "eval_length_mean": float(np.mean(lengths)),
         "success_rate": float((arr >= thr).mean()),
         "n_solved": int((arr >= thr).sum()),
+        "n_episodes": n_episodes,
         "eval_rewards": [float(x) for x in rewards],
     }
+
+
+@torch.no_grad()
+def evaluate_ppo_greedy(actor, env_name: str, ppo_cfg: dict,
+                        n_episodes: int = EVAL_N_EPISODES,
+                        seed_offset: int = 1000, device=DEVICE) -> dict:
+    env = gym.make(env_name)
+    max_steps = ppo_cfg["max_steps_per_episode"]
+    thr = ppo_cfg["solve_threshold"]
+    rewards, lengths = [], []
+    actor.eval()
+    for ep in range(n_episodes):
+        raw, _ = env.reset(seed=SEEDS_DEFAULT[0] + seed_offset + ep)
+        obs = preprocess_obs_ppo(raw, ppo_cfg)
+        ep_r, ep_len = 0.0, 0
+        for _ in range(max_steps):
+            ot = torch.tensor(obs, dtype=torch.float32, device=device).unsqueeze(0)
+            a = int(actor(ot).argmax(dim=-1).item())
+            raw, r, term, trunc, _ = env.step(a)
+            obs = preprocess_obs_ppo(raw, ppo_cfg)
+            ep_r += r
+            ep_len += 1
+            if term or trunc:
+                break
+        rewards.append(ep_r)
+        lengths.append(ep_len)
+    env.close()
+    arr = np.array(rewards, dtype=np.float32)
+    return {
+        "eval_mean": float(arr.mean()),
+        "eval_std": float(arr.std()),
+        "eval_min": float(arr.min()),
+        "eval_max": float(arr.max()),
+        "eval_median": float(np.median(arr)),
+        "eval_length_mean": float(np.mean(lengths)),
+        "success_rate": float((arr >= thr).mean()),
+        "n_solved": int((arr >= thr).sum()),
+        "n_episodes": n_episodes,
+        "eval_rewards": [float(x) for x in rewards],
+    }
+
+
+@torch.no_grad()
+def run_greedy_eval_for_entry(entry: dict, n_episodes: int = EVAL_N_EPISODES_REPORT) -> dict | None:
+    """
+    Recharge le checkpoint de l'entrée et lance evaluate_* greedy sur n_episodes.
+    Met à jour eval_mean, eval_std, success_rate, etc.
+    """
+    env_name = entry["env_name"]
+    algo = entry["algo"]
+    spec = ENV_SPECS[env_name]
+    ckpt_path = entry.get("checkpoint") or ""
+    if not ckpt_path or not Path(ckpt_path).exists():
+        ckpt_path = str(_baseline_checkpoint_path(algo, env_name) or "")
+        if entry.get("use_precedence") and entry.get("wm_config"):
+            ckpt_path = _precedence_checkpoint_path(algo, env_name, entry["wm_config"]) or ckpt_path
+    if not ckpt_path or not Path(ckpt_path).exists():
+        print(f"⚠ Pas de checkpoint pour {entry.get('label')} — eval 100 eps ignorée")
+        return None
+
+    if algo == "dqn":
+        ckpt = torch.load(ckpt_path, map_location=DEVICE, weights_only=False)
+        if entry.get("use_precedence"):
+            ckpt.setdefault("use_precedence", True)
+        q_net = _build_qnet_from_checkpoint(ckpt, spec)
+
+        if env_name == "CartPole-v1":
+            sm = ckpt.get("state_mean")
+            ss = ckpt.get("state_std")
+            if sm is None:
+                scaler = np.load(spec["data_path"] / "scaler.npz", allow_pickle=True)
+                sm = scaler["state_mean"].astype(np.float32)
+                ss = scaler["state_std"].astype(np.float32)
+            eval_m = evaluate_dqn_greedy(q_net, env_name, sm, ss, spec, n_episodes=n_episodes)
+        else:
+            sm = np.zeros(4, dtype=np.float32)
+            ss = np.ones(4, dtype=np.float32)
+            eval_m = evaluate_dqn_greedy(q_net, env_name, sm, ss, spec, n_episodes=n_episodes)
+    else:
+        ckpt = torch.load(ckpt_path, map_location=DEVICE, weights_only=False)
+        ppo_cfg = PPO_EVAL_PROFILES[env_name]
+        obs_dim = ckpt.get("obs_dim", spec["state_dim"] if not ppo_cfg["discrete_obs"] else ppo_cfg["n_states"])
+        n_act = ckpt.get("n_actions", spec["action_dim"])
+        hidden = ckpt.get("hidden_sizes", ppo_cfg["hidden_sizes"])
+        if isinstance(hidden, list):
+            hidden = tuple(hidden)
+        actor = PPOActor(obs_dim, n_act, hidden).to(DEVICE)
+        actor.load_state_dict(ckpt["actor"])
+        eval_m = evaluate_ppo_greedy(actor, env_name, ppo_cfg, n_episodes=n_episodes)
+
+    entry.update(eval_m)
+    entry["eval_n_episodes"] = n_episodes
+    entry["eval_source"] = "greedy_rerun"
+    entry["checkpoint"] = ckpt_path
+    print(f"✓ Eval {n_episodes} eps — {entry.get('label')}: "
+          f"{eval_m['eval_mean']:.2f} ± {eval_m['eval_std']:.2f} "
+          f"(success {100*eval_m['success_rate']:.0f}%)")
+    return eval_m
+
+
+def refresh_entries_greedy_eval(entries: list[dict],
+                                n_episodes: int = EVAL_N_EPISODES_REPORT) -> list[dict]:
+    """Lance greedy eval (100 eps par défaut) pour chaque entrée avec checkpoint."""
+    for e in entries:
+        run_greedy_eval_for_entry(e, n_episodes=n_episodes)
+    return entries
 
 
 def train_dqn_cartpole(
@@ -398,8 +622,8 @@ def train_dqn_cartpole(
     target_update, buffer_size = 10, 50_000
 
     env = gym.make(env_name)
-    q_net = QNetwork(spec["state_dim"], spec["action_dim"]).to(DEVICE)
-    target = QNetwork(spec["state_dim"], spec["action_dim"]).to(DEVICE)
+    q_net = QNetwork(spec["state_dim"], spec["action_dim"], hidden_sizes=(128, 128)).to(DEVICE)
+    target = QNetwork(spec["state_dim"], spec["action_dim"], hidden_sizes=(128, 128)).to(DEVICE)
     target.load_state_dict(q_net.state_dict())
     opt = optim.Adam(q_net.parameters(), lr=lr)
     buf = deque(maxlen=buffer_size)
@@ -525,10 +749,15 @@ def plot_learning_curves(groups: dict[str, dict], title: str, save_name: str,
 
 
 def plot_bar_comparison(entries: list[dict], title: str, save_name: str,
-                        metric: str = "train_final_mean"):
+                        metric: str = "train_final_mean", err_metric: str | None = None):
     labels = [e.get("label", "?") for e in entries]
     means = [e.get(metric, 0) for e in entries]
-    stds = [e.get("train_final_std", e.get("eval_std", 0)) for e in entries]
+    if err_metric:
+        stds = [e.get(err_metric, 0) for e in entries]
+    elif metric == "eval_mean":
+        stds = [e.get("eval_std", 0) for e in entries]
+    else:
+        stds = [e.get("train_final_std", 0) for e in entries]
     fig, ax = plt.subplots(figsize=(max(8, len(labels) * 1.2), 5))
     x = np.arange(len(labels))
     ax.bar(x, means, yerr=stds, capsize=4, color=plt.cm.tab10(np.linspace(0, 0.8, len(labels))))
