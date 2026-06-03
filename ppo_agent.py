@@ -31,6 +31,7 @@ import torch.optim as optim
 import matplotlib.pyplot as plt
 import gymnasium as gym
 import scipy.signal
+from scipy.integrate import trapezoid
 
 # ─────────────────────────────────────────────
 # PATHS & SEED
@@ -167,7 +168,7 @@ def learning_curve_auc(rewards: np.ndarray) -> float:
         return 0.0
     if len(rewards) == 1:
         return float(rewards[0])
-    return float(np.trapz(rewards.astype(np.float64), np.arange(len(rewards))))
+    return float(trapezoid(rewards.astype(np.float64), np.arange(len(rewards))))
 
 
 def compute_training_metrics(all_rewards: list, mean_rewards: list,
@@ -422,7 +423,7 @@ def train_ppo(env_name: str = "CartPole-v1"):
     os.makedirs(plots_dir, exist_ok=True)
 
     # ── Initialize log file ────────────────────────────────────────────
-    log_file = open(os.path.join(plots_dir, "training.txt"), "w")
+    log_file = open(os.path.join(plots_dir, "training.txt"), "w", encoding="utf-8")
 
     def log_print(*args, **kwargs):
         """Print to both console and log file."""
@@ -556,7 +557,12 @@ def train_ppo(env_name: str = "CartPole-v1"):
     eval_metrics = evaluate_ppo_greedy(actor, env_name, cfg)
     print_metrics_summary(train_metrics, eval_metrics, log_print=log_print)
 
-    metrics = {"env_name": env_name, "train": train_metrics, "eval": eval_metrics}
+    metrics = {
+        "env_name": env_name,
+        "train": train_metrics,
+        "eval": eval_metrics,
+        "all_episode_rewards": [float(r) for r in all_rewards],
+    }
     metrics_path = os.path.join(plots_dir, "ppo_metrics.json")
     with open(metrics_path, "w") as f:
         json.dump(metrics, f, indent=2)
