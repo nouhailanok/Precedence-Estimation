@@ -23,15 +23,15 @@
             "n_goal_eps": 100
         },
         "PPO baseline": {
-            "mean_reward": -200.0,
+            "mean_reward": -13.0,
             "std_reward": 0.0,
-            "min_reward": -200.0,
-            "max_reward": -200.0,
+            "min_reward": -13.0,
+            "max_reward": -13.0,
             "cliff_rate": 0.0,
-            "goal_rate": 0.0,
-            "avg_steps": 200.0,
-            "avg_steps_goal": NaN,
-            "n_goal_eps": 0
+            "goal_rate": 1.0,
+            "avg_steps": 13.0,
+            "avg_steps_goal": 13.0,
+            "n_goal_eps": 100
         },
         "DQN+Prec C1": {
             "mean_reward": -13.0,
@@ -101,6 +101,8 @@
         }
     },
     "sample_efficiency": {
+        "DQN baseline": 99,
+        "PPO baseline": 733,
         "DQN+Prec C1": -1,
         "DQN+Prec C2": 333,
         "DQN+Prec C3": 288,
@@ -109,6 +111,14 @@
         "PPO+Prec C3": 2078
     },
     "stability": {
+        "DQN baseline": {
+            "mean": -15.16,
+            "std": 0.5043808085167397
+        },
+        "PPO baseline": {
+            "mean": -12.88,
+            "std": 0.84
+        },
         "DQN+Prec C1": {
             "mean": -123.06,
             "std": 76.5209539930077
@@ -142,41 +152,41 @@
                 "goal_rate": 1.0
             },
             "0.05": {
-                "mean_reward": -18.22,
-                "cliff_rate": 0.02,
+                "mean_reward": -15.86,
+                "cliff_rate": 0.0,
                 "goal_rate": 1.0
             },
             "0.1": {
-                "mean_reward": -23.12,
-                "cliff_rate": 0.06,
+                "mean_reward": -19.76,
+                "cliff_rate": 0.02,
                 "goal_rate": 1.0
             },
             "0.2": {
-                "mean_reward": -33.14,
-                "cliff_rate": 0.12,
+                "mean_reward": -37.88,
+                "cliff_rate": 0.16,
                 "goal_rate": 1.0
             }
         },
         "PPO baseline": {
             "0.0": {
-                "mean_reward": -200.0,
+                "mean_reward": -13.0,
                 "cliff_rate": 0.0,
-                "goal_rate": 0.0
+                "goal_rate": 1.0
             },
             "0.05": {
-                "mean_reward": -200.0,
-                "cliff_rate": 0.0,
-                "goal_rate": 0.0
+                "mean_reward": -35.1,
+                "cliff_rate": 0.2,
+                "goal_rate": 1.0
             },
             "0.1": {
-                "mean_reward": -205.94,
-                "cliff_rate": 0.06,
-                "goal_rate": 0.0
+                "mean_reward": -41.98,
+                "cliff_rate": 0.2,
+                "goal_rate": 1.0
             },
             "0.2": {
-                "mean_reward": -209.9,
-                "cliff_rate": 0.1,
-                "goal_rate": 0.0
+                "mean_reward": -112.66,
+                "cliff_rate": 0.52,
+                "goal_rate": 1.0
             }
         },
         "DQN+Prec C1": {
@@ -186,18 +196,18 @@
                 "goal_rate": 1.0
             },
             "0.05": {
-                "mean_reward": -24.24,
+                "mean_reward": -24.52,
                 "cliff_rate": 0.1,
                 "goal_rate": 1.0
             },
             "0.1": {
-                "mean_reward": -44.34,
-                "cliff_rate": 0.24,
+                "mean_reward": -38.04,
+                "cliff_rate": 0.22,
                 "goal_rate": 1.0
             },
             "0.2": {
-                "mean_reward": -97.62,
-                "cliff_rate": 0.42,
+                "mean_reward": -140.22,
+                "cliff_rate": 0.58,
                 "goal_rate": 1.0
             }
         },
@@ -208,18 +218,18 @@
                 "goal_rate": 1.0
             },
             "0.05": {
-                "mean_reward": -26.12,
-                "cliff_rate": 0.08,
+                "mean_reward": -39.48,
+                "cliff_rate": 0.2,
                 "goal_rate": 1.0
             },
             "0.1": {
-                "mean_reward": -31.36,
-                "cliff_rate": 0.14,
+                "mean_reward": -46.28,
+                "cliff_rate": 0.24,
                 "goal_rate": 1.0
             },
             "0.2": {
-                "mean_reward": -83.14,
-                "cliff_rate": 0.48,
+                "mean_reward": -96.34,
+                "cliff_rate": 0.46,
                 "goal_rate": 1.0
             }
         },
@@ -230,18 +240,18 @@
                 "goal_rate": 1.0
             },
             "0.05": {
-                "mean_reward": -22.18,
-                "cliff_rate": 0.08,
-                "goal_rate": 1.0
-            },
-            "0.1": {
-                "mean_reward": -25.02,
+                "mean_reward": -24.62,
                 "cliff_rate": 0.1,
                 "goal_rate": 1.0
             },
+            "0.1": {
+                "mean_reward": -59.36,
+                "cliff_rate": 0.26,
+                "goal_rate": 1.0
+            },
             "0.2": {
-                "mean_reward": -88.34,
-                "cliff_rate": 0.46,
+                "mean_reward": -104.44,
+                "cliff_rate": 0.44,
                 "goal_rate": 1.0
             }
         },
@@ -252,19 +262,19 @@
                 "goal_rate": 0.0
             },
             "0.05": {
-                "mean_reward": -6277.52,
-                "cliff_rate": 1.0,
-                "goal_rate": 0.96
+                "mean_reward": -7152.78,
+                "cliff_rate": 0.98,
+                "goal_rate": 0.84
             },
             "0.1": {
-                "mean_reward": -5213.72,
-                "cliff_rate": 1.0,
-                "goal_rate": 0.92
+                "mean_reward": -4805.76,
+                "cliff_rate": 0.98,
+                "goal_rate": 0.94
             },
             "0.2": {
-                "mean_reward": -2292.76,
+                "mean_reward": -2957.38,
                 "cliff_rate": 0.96,
-                "goal_rate": 1.0
+                "goal_rate": 0.98
             }
         },
         "PPO+Prec C2": {
@@ -274,18 +284,18 @@
                 "goal_rate": 1.0
             },
             "0.05": {
-                "mean_reward": -35.08,
+                "mean_reward": -30.5,
                 "cliff_rate": 0.16,
                 "goal_rate": 1.0
             },
             "0.1": {
-                "mean_reward": -39.58,
+                "mean_reward": -44.6,
                 "cliff_rate": 0.22,
                 "goal_rate": 1.0
             },
             "0.2": {
-                "mean_reward": -117.78,
-                "cliff_rate": 0.42,
+                "mean_reward": -117.36,
+                "cliff_rate": 0.48,
                 "goal_rate": 1.0
             }
         },
@@ -296,19 +306,19 @@
                 "goal_rate": 0.0
             },
             "0.05": {
-                "mean_reward": -16483.44,
-                "cliff_rate": 1.0,
-                "goal_rate": 0.16
+                "mean_reward": -15883.08,
+                "cliff_rate": 0.98,
+                "goal_rate": 0.18
             },
             "0.1": {
-                "mean_reward": -10980.62,
+                "mean_reward": -11923.18,
                 "cliff_rate": 1.0,
-                "goal_rate": 0.54
+                "goal_rate": 0.44
             },
             "0.2": {
-                "mean_reward": -5812.28,
-                "cliff_rate": 1.0,
-                "goal_rate": 0.8
+                "mean_reward": -6172.64,
+                "cliff_rate": 0.96,
+                "goal_rate": 0.92
             }
         }
     }
