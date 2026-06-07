@@ -1,28 +1,5 @@
 """
 train_dnn_advanced.py — Precedence Estimation sur CartPole-v1
-World model : f(s_t, a_t) → Δs_t   puis   s_{t+1} = s_t + Δs_t
-
-Pourquoi prédire Δs plutôt que s' ?
-  - Δs est centré autour de 0 → plus facile à optimiser
-  - Exploite la continuité physique de CartPole
-  - Moins d'accumulation d'erreur dans le rollout séquentiel
-
-Choix de loss : MSE ou Huber (configurable via LOSS_TYPE)
-
-Fonctionnalités :
-  - Mixed policy dataset (cartpole_data_mixed_policy.npz)
-  - Predict delta Δs
-  - MSE ou HuberLoss
-  - Validation split + early stopping
-  - LR scheduler (ReduceLROnPlateau)
-  - Checkpoint best model
-  - AdamW optimizer
-  - Évaluation physique (dénormalisée)
-  - Rollout séquentiel (multiple seeds, stats d'erreur)
-  - Visualisations
-
-Usage :
-    python train_dnn_advanced.py
 """
 
 import numpy as np
@@ -50,22 +27,17 @@ LR          = 1e-3
 PATIENCE    = 15
 MIN_DELTA   = 1e-6
 
-# ==== LOSS CHOICE ====
-# "mse"   → nn.MSELoss()        — standard, adapté à CartPole (recommandé)
-# "huber" → nn.HuberLoss(delta) — robuste aux outliers (mieux sur LunarLander)
 LOSS_TYPE   = "mse"
 HUBER_DELTA = 1.0
 
-# ==== ROLLOUT CONFIG ====
-N_ROLLOUT_EPISODES = 5     # nombre d'épisodes pour évaluer le rollout
-ROLLOUT_STEPS      = 60    # pas max par épisode de rollout
+
+N_ROLLOUT_EPISODES = 5    
+ROLLOUT_STEPS      = 60  
 
 SEED = 42
 
 
-# ════════════════════════════════════════════════════════════
-# REPRODUCTIBILITÉ
-# ════════════════════════════════════════════════════════════
+
 
 def set_seed(seed: int = SEED):
     np.random.seed(seed)
@@ -80,27 +52,11 @@ print(f"Device : {DEVICE}  |  Loss : {LOSS_TYPE.upper()}"
       + (f"  (delta={HUBER_DELTA})" if LOSS_TYPE == "huber" else ""))
 
 
-# ════════════════════════════════════════════════════════════
-# LOSS FACTORY
-# ════════════════════════════════════════════════════════════
+
+
 
 def get_loss_fn(loss_type: str = LOSS_TYPE, delta: float = HUBER_DELTA) -> nn.Module:
-    """
-    Retourne la fonction de loss choisie.
 
-    MSE   → pénalise quadratiquement toutes les erreurs.
-            Idéal quand les résidus Δs sont petits et gaussiens (CartPole).
-            Sensible aux outliers (les grandes erreurs dominent).
-
-    Huber → MSE si |erreur| < delta, MAE sinon.
-            Robuste aux transitions aberrantes.
-            Utile si la politique mixte génère des transitions
-            inhabituelles (chutes brusques, états limites).
-            Recommandé pour LunarLander ou des envs bruités.
-
-    Conseil : commencer avec MSE, switcher sur Huber si la loss
-    d'entraînement oscille beaucoup ou si MSE_test >> MSE_train.
-    """
     if loss_type == "mse":
         return nn.MSELoss()
     elif loss_type == "huber":
@@ -109,27 +65,9 @@ def get_loss_fn(loss_type: str = LOSS_TYPE, delta: float = HUBER_DELTA) -> nn.Mo
         raise ValueError(f"loss_type doit être 'mse' ou 'huber'. Reçu : '{loss_type}'")
 
 
-# ════════════════════════════════════════════════════════════
-# CHARGEMENT + PRÉPARATION DES DONNÉES
-# ════════════════════════════════════════════════════════════
+
 
 def load_data(path: str):
-    """
-    Charge le NPZ et construit les cibles Δs = s_{t+1} - s_t.
-
-    Contenu attendu du NPZ (produit par collect_data_dqn_v2) :
-        s_train / s_val / s_test    (N, 4) normalisés
-        a_train / a_val / a_test    (N, 2) one-hot
-        sn_train / sn_val / sn_test (N, 4) normalisés
-        mean (1, 4), std (1, 4)
-
-    Pourquoi Δs normalisé ?
-        Δs = sn_norm - s_norm  (les deux sont déjà dans l'espace normalisé)
-        → Δs est centré en 0, amplitude ~3× plus petite que s'
-        → le réseau apprend une correction résiduelle, pas une valeur absolue
-        → reconstruction : s'_norm = s_norm + Δs_prédit
-                           s'_phys = denormalize(s'_norm)
-    """
     data = np.load(path)
 
     def t(k): return torch.tensor(data[k], dtype=torch.float32)
@@ -141,10 +79,8 @@ def load_data(path: str):
     mean = data["mean"].astype(np.float32)   # (1, 4)
     std  = data["std"].astype(np.float32)    # (1, 4)
 
-    # Protection contre std ≈ 0 (dimensions constantes)
     std = np.where(std < 1e-8, 1.0, std)
 
-    # ── Cibles : Δs = s_{t+1} - s_t  (dans l'espace normalisé) ──
     delta_tr  = sn_tr  - s_tr
     delta_val = sn_val - s_val
     delta_te  = sn_te  - s_te
@@ -160,34 +96,18 @@ def load_data(path: str):
     return (s_tr, a_tr, delta_tr,
             s_val, a_val, delta_val,
             s_te,  a_te,  delta_te,
-            sn_te,   # ← état suivant réel (pour évaluation physique)
+            sn_te,   
             mean, std)
 
 
-# ════════════════════════════════════════════════════════════
-# DÉNORMALISATION
-# ════════════════════════════════════════════════════════════
+
 
 def denormalize(s_norm: np.ndarray, mean: np.ndarray, std: np.ndarray) -> np.ndarray:
-    """Repasse de l'espace normalisé aux unités physiques réelles."""
     return s_norm * std + mean
 
 
-# ════════════════════════════════════════════════════════════
-# ARCHITECTURE DNN
-# ════════════════════════════════════════════════════════════
 
 class TransitionDNN(nn.Module):
-    """
-    World model — prédit Δs = s_{t+1} - s_t.
-
-    Entrée  : concat[s_t normalisé (4D), a_t one-hot (2D)] = 6D
-    Sortie  : Δs normalisé prédit (4D)
-    Reconstruction : s_{t+1} = s_t + Δs_prédit  (dans l'espace normalisé)
-
-    Architecture Tiny [32-32] — meilleure sur CartPole (MSE=5e-7, R²=1.0)
-    validée sur 5 seeds vs 13 autres architectures via dnn_compare_robust.py
-    """
     def __init__(self, state_dim: int = 4, action_dim: int = 2):
         super().__init__()
         self.net = nn.Sequential(
@@ -199,17 +119,12 @@ class TransitionDNN(nn.Module):
         )
 
     def forward(self, state: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
-        """Retourne Δs prédit (pas s' directement)."""
         return self.net(torch.cat([state, action], dim=1))
 
     def predict_next(self, state: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
-        """Reconstruit s_{t+1} = s_t + Δs prédit (dans l'espace normalisé)."""
         return state + self.forward(state, action)
 
 
-# ════════════════════════════════════════════════════════════
-# EARLY STOPPING
-# ════════════════════════════════════════════════════════════
 
 class EarlyStopping:
     def __init__(self, patience: int = PATIENCE, min_delta: float = MIN_DELTA):
@@ -227,23 +142,8 @@ class EarlyStopping:
         return self.counter >= self.patience
 
 
-# ════════════════════════════════════════════════════════════
-# ENTRAÎNEMENT
-# ════════════════════════════════════════════════════════════
 
 def train_model(model, train_loader, val_loader, optimizer, scheduler, criterion):
-    """
-    Boucle d'entraînement avec :
-      - MSE ou HuberLoss sur Δs (pas sur s')
-      - Validation à chaque époque
-      - Checkpoint du meilleur modèle (val loss)
-      - Early stopping
-      - LR scheduler ReduceLROnPlateau
-
-    Note sur la loss :
-      Minimiser sur Δs est équivalent à minimiser sur s' car s_t est fixé,
-      mais Δs a une amplitude plus petite → gradients plus stables.
-    """
     stopper          = EarlyStopping()
     best_val         = float("inf")
     tr_losses, val_losses = [], []
@@ -251,7 +151,6 @@ def train_model(model, train_loader, val_loader, optimizer, scheduler, criterion
 
     for epoch in range(EPOCHS):
 
-        # ── Train ──
         model.train()
         tr_loss = 0.0
         for s, a, delta in train_loader:
@@ -264,7 +163,6 @@ def train_model(model, train_loader, val_loader, optimizer, scheduler, criterion
             tr_loss += loss.item() * s.size(0)
         tr_loss /= len(train_loader.dataset)
 
-        # ── Validation ──
         model.eval()
         vl_loss = 0.0
         with torch.no_grad():
@@ -326,8 +224,7 @@ def evaluate(model, test_loader, s_te_tensor, sn_te_tensor, mean, std, eps=0.01)
     dp = np.concatenate(deltas_pred)
     dr = np.concatenate(deltas_real)
 
-    # Loss sur Δs (MSE toujours pour comparaison équitable)
-    # loss_delta = float(np.mean((dp - dr) ** 2))
+
     loss_delta = float(np.mean(
         (dp - dr)**2 if LOSS_TYPE == "mse"
         else np.where(np.abs(dp-dr) < HUBER_DELTA,
@@ -335,7 +232,6 @@ def evaluate(model, test_loader, s_te_tensor, sn_te_tensor, mean, std, eps=0.01)
                       HUBER_DELTA*(np.abs(dp-dr) - 0.5*HUBER_DELTA))
     ))
 
-    # Reconstruction s' et métriques physiques
     s_norm      = s_te_tensor.numpy()
     sn_norm     = sn_te_tensor.numpy()
     spred_norm  = s_norm + dp
@@ -377,26 +273,11 @@ def evaluate(model, test_loader, s_te_tensor, sn_te_tensor, mean, std, eps=0.01)
     }
 
 
-# ════════════════════════════════════════════════════════════
-# ROLLOUT — FONCTIONS UTILITAIRES
-# ════════════════════════════════════════════════════════════
+
 
 def collect_rollout_episode(env, model, mean, std,
                             max_steps: int = ROLLOUT_STEPS,
                             seed: int = 0) -> dict:
-    """
-    Collecte UN épisode de rollout complet.
-
-    À chaque pas :
-        1. Predict  : Δs_pred = model(s_norm, a_oh)
-                      s'_norm = s_norm + Δs_pred        ← AVANT env.step
-        2. Execute  : s'_real = env.step(a)              ← vrai environnement
-        3. Compare  : erreur physique pas à pas
-
-    Retourne un dict avec les trajectoires et erreurs.
-    C'est la démonstration centrale de la Precedence Estimation :
-    le world model prédit s_{t+1} AVANT d'appeler env.step().
-    """
     obs, _ = env.reset(seed=seed)
     model.eval()
 
@@ -410,7 +291,6 @@ def collect_rollout_episode(env, model, mean, std,
         for _ in range(max_steps):
             action = env.action_space.sample()
 
-            # ── PRÉCÉDENCE : prédire AVANT env.step ──
             s_norm = (obs - mean.squeeze()) / std.squeeze()
             s_t    = torch.tensor(s_norm, dtype=torch.float32).unsqueeze(0).to(DEVICE)
             a_oh   = torch.zeros(1, 2, device=DEVICE)
@@ -419,7 +299,6 @@ def collect_rollout_episode(env, model, mean, std,
             spred_norm = model.predict_next(s_t, a_oh).cpu().numpy().squeeze()
             spred_phys_step = denormalize(spred_norm[np.newaxis], mean, std).squeeze()
 
-            # ── Environnement réel ──
             next_obs, _, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
 
@@ -435,27 +314,16 @@ def collect_rollout_episode(env, model, mean, std,
             obs = next_obs
 
     return {
-        "predicted":  np.array(predicted_phys),   # (T, 4)
-        "real":       np.array(real_phys),         # (T, 4)
-        "actions":    np.array(actions_taken),     # (T,)
-        "errors":     np.array(errors_per_step),   # (T, 4)
+        "predicted":  np.array(predicted_phys),   
+        "real":       np.array(real_phys),         
+        "actions":    np.array(actions_taken),    
+        "errors":     np.array(errors_per_step),  
         "n_steps":    step_count,
     }
 
 
 def run_rollout_evaluation(model, mean, std,
                            n_episodes: int = N_ROLLOUT_EPISODES) -> dict:
-    """
-    Évalue le rollout sur N épisodes et agrège les stats.
-
-    Métriques agrégées :
-      - MAE moyen par dimension sur tous les épisodes
-      - Erreur max (worst case)
-      - Drift : comment l'erreur évolue au fil des pas (s'accumule-t-elle ?)
-
-    Retourne aussi les données brutes du meilleur et pire épisode
-    pour les visualisations.
-    """
     env = gym.make("CartPole-v1")
     episodes_data = []
 
@@ -468,18 +336,16 @@ def run_rollout_evaluation(model, mean, std,
 
     env.close()
 
-    # Agréger toutes les erreurs
     all_errors = np.concatenate([d["errors"] for d in episodes_data], axis=0)
     mae_per_dim = all_errors.mean(axis=0)
     max_err_per_dim = all_errors.max(axis=0)
 
-    # Drift : erreur moyenne par position dans l'épisode (pad avec nan)
     max_len = max(d["n_steps"] for d in episodes_data)
     drift_matrix = np.full((n_episodes, max_len, 4), np.nan)
     for i, d in enumerate(episodes_data):
         T = d["n_steps"]
         drift_matrix[i, :T, :] = d["errors"]
-    drift_mean = np.nanmean(drift_matrix, axis=0)   # (max_len, 4)
+    drift_mean = np.nanmean(drift_matrix, axis=0)   
 
     dim_names = ["x (m)", "ẋ (m/s)", "θ (rad)", "θ̇ (rad/s)"]
     print(f"\n{'─'*55}")
@@ -489,7 +355,6 @@ def run_rollout_evaluation(model, mean, std,
         print(f"{name:12s} {mae_per_dim[i]:>12.6f} {max_err_per_dim[i]:>12.6f}")
     print(f"{'─'*55}")
 
-    # Meilleur et pire épisode selon MAE globale
     maes      = [d["errors"].mean() for d in episodes_data]
     best_ep   = episodes_data[int(np.argmin(maes))]
     worst_ep  = episodes_data[int(np.argmax(maes))]
@@ -504,9 +369,6 @@ def run_rollout_evaluation(model, mean, std,
     }
 
 
-# ════════════════════════════════════════════════════════════
-# VISUALISATIONS
-# ════════════════════════════════════════════════════════════
 
 def plot_training_curve(tr_losses, val_losses):
     fig, ax = plt.subplots(figsize=(9, 4))
@@ -524,7 +386,6 @@ def plot_training_curve(tr_losses, val_losses):
 
 
 def plot_predictions(pred_phys, real_phys, n=400):
-    """Scatter s' prédit vs réel pour chaque dimension."""
     dim_names = ["x (m)", "ẋ (m/s)", "θ (rad)", "θ̇ (rad/s)"]
     fig, axes = plt.subplots(1, 4, figsize=(14, 4))
     for i, (ax, name) in enumerate(zip(axes, dim_names)):
@@ -546,7 +407,6 @@ def plot_predictions(pred_phys, real_phys, n=400):
 
 
 def plot_delta_distribution(delta_pred_norm, delta_real_norm):
-    """Histogrammes superposés Δs prédit vs réel par dimension."""
     dim_names = ["Δx", "Δẋ", "Δθ", "Δθ̇"]
     fig, axes = plt.subplots(1, 4, figsize=(14, 3))
     for i, (ax, name) in enumerate(zip(axes, dim_names)):
@@ -566,10 +426,7 @@ def plot_delta_distribution(delta_pred_norm, delta_real_norm):
 
 
 def plot_rollout_episode(ep_data: dict, title_suffix: str = ""):
-    """
-    Figure 1 du rollout : trajectoires prédite vs réelle sur 4 dimensions
-    pour UN épisode. Montre la qualité pas à pas de la Precedence Estimation.
-    """
+
     pred    = ep_data["predicted"]
     real    = ep_data["real"]
     errors  = ep_data["errors"]
@@ -608,12 +465,7 @@ def plot_rollout_episode(ep_data: dict, title_suffix: str = ""):
 
 
 def plot_rollout_drift(drift_mean: np.ndarray):
-    """
-    Figure 2 du rollout : drift de l'erreur au fil des pas.
-    Montre si l'erreur s'accumule (problème) ou reste stable (bon world model).
-    C'est la figure la plus critique pour évaluer la qualité du world model
-    dans un contexte model-based RL.
-    """
+
     T         = drift_mean.shape[0]
     dim_names = ["x (m)", "ẋ (m/s)", "θ (rad)", "θ̇ (rad/s)"]
     colors    = ["#378ADD", "#1D9E75", "#D85A30", "#9B59B6"]
@@ -639,11 +491,7 @@ def plot_rollout_drift(drift_mean: np.ndarray):
 
 
 def plot_rollout_error_boxplot(episodes_data: list):
-    """
-    Figure 3 du rollout : boxplot de la distribution des erreurs
-    sur tous les épisodes, par dimension.
-    Montre la variabilité et les outliers.
-    """
+
     all_errors  = np.concatenate([d["errors"] for d in episodes_data], axis=0)
     dim_names   = ["x (m)", "ẋ (m/s)", "θ (rad)", "θ̇ (rad/s)"]
 
@@ -671,19 +519,14 @@ def plot_rollout_error_boxplot(episodes_data: list):
     print("Sauvegardé → " + os.path.join(PLOTS_DIR, "rollout_error_boxplot.png"))
 
 
-# ════════════════════════════════════════════════════════════
-# MAIN
-# ════════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
 
-    # 1. Chargement
     (s_tr, a_tr, delta_tr,
      s_val, a_val, delta_val,
      s_te,  a_te,  delta_te,
      sn_te, mean, std) = load_data(DATA_PATH)
 
-    # 2. DataLoaders
     train_loader = DataLoader(TensorDataset(s_tr,  a_tr,  delta_tr),
                               batch_size=BATCH_SIZE, shuffle=True)
     val_loader   = DataLoader(TensorDataset(s_val, a_val, delta_val),
@@ -691,12 +534,10 @@ if __name__ == "__main__":
     test_loader  = DataLoader(TensorDataset(s_te,  a_te,  delta_te),
                               batch_size=BATCH_SIZE, shuffle=False)
 
-    # 3. Modèle
     model    = TransitionDNN().to(DEVICE)
     n_params = sum(p.numel() for p in model.parameters())
     print(f"\nArchitecture :\n{model}\nParamètres : {n_params:,}\n")
 
-    # 4. Optimiseur + loss + scheduler
     optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=1e-4)
     criterion = get_loss_fn(LOSS_TYPE, HUBER_DELTA)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -704,25 +545,20 @@ if __name__ == "__main__":
     )
     print(f"Loss utilisée : {criterion}")
 
-    # 5. Entraînement
     tr_losses, val_losses = train_model(
         model, train_loader, val_loader, optimizer, scheduler, criterion
     )
 
-    # 6. Charger le meilleur checkpoint
     model.load_state_dict(torch.load(CHECKPOINT_PATH, map_location=DEVICE))
     print("\nMeilleur checkpoint rechargé.")
 
-    # 7. Courbe d'entraînement
     plot_training_curve(tr_losses, val_losses)
 
-    # 8. Évaluation sur le test set
     pred_phys, real_phys, metrics = evaluate(
         model, test_loader, s_te, sn_te, mean, std
     )
     plot_predictions(pred_phys, real_phys)
 
-    # 9. Distribution des deltas
     model.eval()
     dp_list = []
     with torch.no_grad():
@@ -733,27 +569,20 @@ if __name__ == "__main__":
     delta_real_norm = delta_te.numpy()
     plot_delta_distribution(delta_pred_norm, delta_real_norm)
 
-    # ════════════════════════════════════════════════
-    # 10. ROLLOUT — évaluation complète sur N épisodes
-    # ════════════════════════════════════════════════
+
     rollout_results = run_rollout_evaluation(model, mean, std,
                                              n_episodes=N_ROLLOUT_EPISODES)
 
-    # Figure A : meilleur épisode
     plot_rollout_episode(rollout_results["best_ep"],
                          title_suffix="Meilleur épisode")
 
-    # Figure B : pire épisode (montre les limites du modèle)
     plot_rollout_episode(rollout_results["worst_ep"],
                          title_suffix="Pire épisode")
 
-    # Figure C : drift de l'erreur au fil des pas
     plot_rollout_drift(rollout_results["drift_mean"])
 
-    # Figure D : boxplot de la distribution des erreurs
     plot_rollout_error_boxplot(rollout_results["episodes"])
 
-    # 11. Sauvegarde finale
     torch.save(model.state_dict(), "transition_dnn_final.pth")
     print("\nModèle sauvegardé → transition_dnn_final.pth")
 
