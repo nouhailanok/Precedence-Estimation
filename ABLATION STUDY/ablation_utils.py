@@ -7,10 +7,6 @@ Axes couverts :
   3. stratégie de vérification (CartPole: safety/stability/combined)
   4. algorithme DQN vs PPO
 
-Usage depuis les notebooks :
-    import sys
-    sys.path.insert(0, "..")  # ou chemin projet
-    from ablation_utils import *
 """
 
 from __future__ import annotations
@@ -40,15 +36,14 @@ PLOTS_DIR.mkdir(parents=True, exist_ok=True)
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Protocole eval aligné dqn_with_precedence_CartPole_full.ipynb / dqn_agent.py
 N_SEEDS_DEFAULT = 3
 SEEDS_DEFAULT = [42, 123, 456]
 N_EPISODES_ABLATION = 300
-EVAL_N_EPISODES = 30          # protocole training / notebooks full
-EVAL_N_EPISODES_REPORT = 100  # ablation : eval greedy plus stable (bar chart)
+EVAL_N_EPISODES = 30         
+EVAL_N_EPISODES_REPORT = 100  
 FINAL_WINDOW = 50
 
-# Profils PPO minimaux pour eval greedy (alignés ppo_agent.py)
+
 PPO_EVAL_PROFILES = {
     "CartPole-v1": {
         "hidden_sizes": (64, 64),
@@ -96,7 +91,6 @@ ENV_SPECS = {
         "max_steps": 200,
         "discrete_obs": True,
         "n_states": 48,
-        # CliffWalking notebook utilise lookahead au lieu de stability
         "verif_strategies": ("safety", "lookahead", "combined"),
         "dqn_baseline_metrics": PROJECT_ROOT / "DQN_plots" / "CliffWalking-v1" / "dqn_metrics.json",
         "ppo_baseline_metrics": PROJECT_ROOT / "PPO_plots" / "CliffWalking-v1" / "ppo_metrics.json",
@@ -110,7 +104,6 @@ ENV_SPECS = {
 }
 
 
-# ── Métriques ────────────────────────────────────────────────────────
 def set_seed(seed: int) -> None:
     random.seed(seed)
     np.random.seed(seed)
@@ -162,7 +155,7 @@ def aggregate_seeds(runs: list[dict]) -> dict:
     }
 
 
-# ── Chargement résultats existants ───────────────────────────────────
+
 def _load_json(path: Path) -> dict | None:
     if path and path.exists():
         with open(path) as f:
@@ -177,7 +170,7 @@ def load_baseline_metrics(algo: str, env_name: str) -> dict | None:
     if not data:
         return None
     rewards = data.get("train", {})
-    # dqn_metrics.json n'a pas rewards list — reconstruire depuis eval si absent
+  
     entry = {
         "label": f"{algo.upper()} baseline",
         "algo": algo,
@@ -281,7 +274,6 @@ def load_all_ablation_results() -> dict[str, dict]:
     return out
 
 
-# ── CartPole DQN + precedence (entraînement ablation) ───────────────
 class WorldModel(nn.Module):
     def __init__(self, obs_dim, act_dim, config=1, n_step=5, hidden=64):
         super().__init__()
@@ -389,7 +381,6 @@ def _resolve_hidden_sizes(ckpt: dict, default=(64, 64)) -> tuple:
     if not isinstance(sd, dict):
         return default
 
-    # Architecture Sequential: Linear(0), ReLU(1), Linear(2), ReLU(3), Linear(4)
     w0 = sd.get("net.0.weight")
     w2 = sd.get("net.2.weight")
     if w0 is None or w2 is None:
@@ -401,7 +392,7 @@ def _resolve_hidden_sizes(ckpt: dict, default=(64, 64)) -> tuple:
 
 def _build_qnet_from_checkpoint(ckpt: dict, spec: dict) -> QNetwork:
     state = ckpt["q_net"] if "q_net" in ckpt else ckpt
-    # obs_dim / n_actions depuis les tenseurs (plus fiable que les métadonnées)
+  
     w0 = state["net.0.weight"]
     w_out = state["net.4.weight"]
     obs_dim = int(w0.shape[1])
@@ -616,7 +607,6 @@ def train_dqn_cartpole(
     state_mean = scaler["state_mean"].astype(np.float32)
     state_std = scaler["state_std"].astype(np.float32)
 
-    # Hyperparams (alignés notebook full)
     batch_size, lr, gamma = 64, 1e-3, 0.99
     eps_start, eps_end, eps_decay = 1.0, 0.01, 0.995
     target_update, buffer_size = 10, 50_000
@@ -716,7 +706,7 @@ def run_multi_seed_cartpole(train_fn, seeds: list[int] | None = None, **kwargs) 
     return aggregate_seeds(runs)
 
 
-# ── Plotting ─────────────────────────────────────────────────────────
+
 def plot_learning_curves(groups: dict[str, dict], title: str, save_name: str,
                          solve_threshold: float | None = None):
     fig, ax = plt.subplots(figsize=(10, 5))
