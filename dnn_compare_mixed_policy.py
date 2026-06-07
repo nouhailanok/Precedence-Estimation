@@ -1,20 +1,6 @@
 """
 dnn_compare_robust.py — Comparaison robuste d'architectures DNN
 Objectif : trouver la meilleure architecture pour prédire Δs sur CartPole-v1
-
-Chaque modèle est entraîné N_SEEDS fois → moyenne ± std pour éliminer
-la variance d'initialisation aléatoire.
-
-Métriques comparées :
-  - Val loss (MSE sur Δs normalisé)
-  - RMSE physique (en unités réelles : m, m/s, rad, rad/s)
-  - R² sur s' reconstruit
-  - Accuracy ε (tolérance normalisée)
-  - Époques avant early stopping
-  - Temps d'entraînement
-
-Usage :
-    python dnn_compare_robust.py
 """
 
 import os
@@ -26,9 +12,7 @@ from torch.utils.data import DataLoader, TensorDataset
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
-# ════════════════════════════════════════════════════════════
-# CONFIG
-# ════════════════════════════════════════════════════════════
+
 
 DATA_PATH      = "cartpole_data_mixed_policy.npz"
 CHECKPOINT_DIR = "checkpoints_compare"
@@ -40,11 +24,11 @@ EPOCHS      = 200
 LR          = 1e-3
 PATIENCE    = 15
 MIN_DELTA   = 1e-6
-N_SEEDS     = 5          # runs par architecture (3 minimum, 5 recommandé)
-EPS         = 0.01       # tolérance normalisée pour accuracy
+N_SEEDS     = 5          
+EPS         = 0.01       
 
-# ==== LOSS CHOICE ====
-LOSS_TYPE   = "mse"      # "mse" ou "huber" — MSE recommandé (voir analyse)
+
+LOSS_TYPE   = "mse"      
 HUBER_DELTA = 1.0
 
 os.makedirs(CHECKPOINT_DIR, exist_ok=True)
@@ -52,9 +36,7 @@ os.makedirs(PLOTS_DIR, exist_ok=True)
 print(f"Device : {DEVICE}  |  Loss : {LOSS_TYPE.upper()}  |  {N_SEEDS} seeds/architecture")
 
 
-# ════════════════════════════════════════════════════════════
-# REPRODUCTIBILITÉ
-# ════════════════════════════════════════════════════════════
+
 
 def set_seed(seed: int):
     np.random.seed(seed)
@@ -64,9 +46,7 @@ def set_seed(seed: int):
     torch.backends.cudnn.benchmark     = False
 
 
-# ════════════════════════════════════════════════════════════
-# LOSS FACTORY
-# ════════════════════════════════════════════════════════════
+
 
 def get_loss_fn(loss_type: str = LOSS_TYPE, delta: float = HUBER_DELTA) -> nn.Module:
     if loss_type == "mse":
@@ -77,15 +57,10 @@ def get_loss_fn(loss_type: str = LOSS_TYPE, delta: float = HUBER_DELTA) -> nn.Mo
         raise ValueError(f"loss_type doit être 'mse' ou 'huber'. Reçu : '{loss_type}'")
 
 
-# ════════════════════════════════════════════════════════════
-# CHARGEMENT DES DONNÉES
-# ════════════════════════════════════════════════════════════
+
 
 def load_data(path: str):
-    """
-    Charge le NPZ et construit Δs = sn_norm - s_norm.
-    Même logique que train_dnn_advanced.py pour cohérence.
-    """
+
     data = np.load(path)
     def t(k): return torch.tensor(data[k], dtype=torch.float32)
 
@@ -96,7 +71,6 @@ def load_data(path: str):
     mean = data["mean"].astype(np.float32)
     std  = data["std"].astype(np.float32)
 
-    # Cibles : Δs dans l'espace normalisé
     delta_tr  = sn_tr  - s_tr
     delta_val = sn_val - s_val
     delta_te  = sn_te  - s_te
@@ -111,17 +85,12 @@ def load_data(path: str):
             mean, std)
 
 
-# ════════════════════════════════════════════════════════════
-# DÉNORMALISATION
-# ════════════════════════════════════════════════════════════
 
 def denormalize(s_norm: np.ndarray, mean, std) -> np.ndarray:
     return s_norm * std + mean
 
 
-# ════════════════════════════════════════════════════════════
-# FACTORY D'ARCHITECTURES
-# ════════════════════════════════════════════════════════════
+
 
 def build_mlp(layers: list[int],
               activation: str = "relu",
@@ -129,18 +98,7 @@ def build_mlp(layers: list[int],
               dropout: float = 0.0,
               state_dim: int = 4,
               action_dim: int = 2) -> nn.Sequential:
-    """
-    Construit un MLP générique pour prédire Δs.
 
-    Entrée  : state_dim + action_dim = 6D
-    Sortie  : state_dim = 4D (Δs)
-
-    Args:
-        layers     : liste des tailles de couches cachées, ex [64, 64]
-        activation : "relu" ou "leakyrelu"
-        batchnorm  : True pour ajouter BatchNorm1d après chaque couche
-        dropout    : taux de dropout (0.0 = désactivé)
-    """
     act_map = {
         "relu":      nn.ReLU,
         "leakyrelu": lambda: nn.LeakyReLU(negative_slope=0.1),
@@ -166,7 +124,6 @@ def build_mlp(layers: list[int],
 
 
 class TransitionDNN(nn.Module):
-    """World model générique — prédit Δs = s_{t+1} - s_t."""
     def __init__(self, net: nn.Sequential):
         super().__init__()
         self.net = net
@@ -182,8 +139,7 @@ class TransitionDNN(nn.Module):
         return sum(p.numel() for p in self.parameters())
 
 
-# Catalogue des architectures à comparer
-# Clé = nom affiché  |  Valeur = lambda qui construit le réseau
+
 MODEL_ZOO = {
     # ── Largeur ──
     "Small     [64-64]":          lambda: build_mlp([64, 64]),
@@ -202,9 +158,7 @@ MODEL_ZOO = {
 }
 
 
-# ════════════════════════════════════════════════════════════
-# EARLY STOPPING
-# ════════════════════════════════════════════════════════════
+
 
 class EarlyStopping:
     def __init__(self, patience: int = PATIENCE, min_delta: float = MIN_DELTA):
@@ -222,19 +176,12 @@ class EarlyStopping:
         return self.counter >= self.patience
 
 
-# ════════════════════════════════════════════════════════════
-# UN SEUL RUN D'ENTRAÎNEMENT
-# ════════════════════════════════════════════════════════════
 
 def run_once(model: TransitionDNN,
              train_loader: DataLoader,
              val_loader: DataLoader,
              ckpt_path: str) -> tuple[float, int, float]:
-    """
-    Entraîne le modèle une fois, sauvegarde le meilleur checkpoint.
 
-    Retourne (best_val_loss, n_epochs, training_time_s).
-    """
     optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=1e-4)
     criterion = get_loss_fn()
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -246,7 +193,6 @@ def run_once(model: TransitionDNN,
     t0        = time.time()
 
     for epoch in range(EPOCHS):
-        # ── Train ──
         model.train()
         tr_loss = 0.0
         for s, a, delta in train_loader:
@@ -258,7 +204,6 @@ def run_once(model: TransitionDNN,
             tr_loss += loss.item() * s.size(0)
         tr_loss /= len(train_loader.dataset)
 
-        # ── Validation ──
         model.eval()
         vl_loss = 0.0
         with torch.no_grad():
@@ -281,9 +226,6 @@ def run_once(model: TransitionDNN,
     return best_val, n_epochs, time.time() - t0
 
 
-# ════════════════════════════════════════════════════════════
-# ÉVALUATION SUR LE TEST SET
-# ════════════════════════════════════════════════════════════
 
 def evaluate_model(model: TransitionDNN,
                    test_loader: DataLoader,
@@ -291,14 +233,7 @@ def evaluate_model(model: TransitionDNN,
                    sn_te: torch.Tensor,
                    mean: np.ndarray,
                    std: np.ndarray) -> dict:
-    """
-    Métriques complètes sur le test set :
-      - val_loss (MSE/Huber sur Δs normalisé)
-      - RMSE physique globale
-      - RMSE par dimension
-      - R²
-      - Accuracy ε
-    """
+
     criterion = get_loss_fn()
     model.eval()
 
@@ -309,13 +244,13 @@ def evaluate_model(model: TransitionDNN,
             dp_list.append(model(s, a).cpu().numpy())
             dr_list.append(delta.numpy())
 
-    dp = np.concatenate(dp_list)   # Δs prédit (normalisé)
-    dr = np.concatenate(dr_list)   # Δs réel   (normalisé)
+    dp = np.concatenate(dp_list)   
+    dr = np.concatenate(dr_list) 
 
-    # Loss sur Δs
-    test_loss = float(np.mean((dp - dr) ** 2))   # MSE toujours pour comparaison équitable
+                     
+    test_loss = float(np.mean((dp - dr) ** 2))  
 
-    # Reconstruction s' et métriques physiques
+   
     s_norm      = s_te.numpy()
     sn_norm     = sn_te.numpy()
     spred_norm  = s_norm + dp
@@ -344,9 +279,7 @@ def evaluate_model(model: TransitionDNN,
     }
 
 
-# ════════════════════════════════════════════════════════════
-# VISUALISATIONS
-# ════════════════════════════════════════════════════════════
+
 
 COLORS = [
     "#378ADD", "#1D9E75", "#D85A30", "#9B59B6",
@@ -357,13 +290,12 @@ COLORS = [
 
 
 def plot_barplot(summary: dict, metric: str, ylabel: str, title: str, fname: str):
-    """Barplot avec barres d'erreur + points individuels (jitter)."""
     names  = list(summary.keys())
     means  = [summary[n][f"{metric}_mean"] for n in names]
     stds   = [summary[n][f"{metric}_std"]  for n in names]
     all_v  = [summary[n][f"{metric}_all"]  for n in names]
 
-    # Trier par moyenne croissante
+  
     order  = np.argsort(means)
     names  = [names[i]  for i in order]
     means  = [means[i]  for i in order]
@@ -378,13 +310,11 @@ def plot_barplot(summary: dict, metric: str, ylabel: str, title: str, fname: str
                   alpha=0.75, width=0.55,
                   error_kw=dict(ecolor="black", elinewidth=1.2, capthick=1.2))
 
-    # Points individuels (jitter)
     for i, vals in enumerate(all_v):
         jitter = np.random.uniform(-0.18, 0.18, len(vals))
         ax.scatter(i + jitter, vals, color="black",
                    s=20, zorder=5, alpha=0.6)
 
-    # Valeur au-dessus de chaque barre
     for bar, mean, std in zip(bars, means, stds):
         ax.text(bar.get_x() + bar.get_width() / 2,
                 bar.get_height() + std + max(means) * 0.01,
@@ -403,12 +333,9 @@ def plot_barplot(summary: dict, metric: str, ylabel: str, title: str, fname: str
 
 
 def plot_radar(summary: dict, top_n: int = 6):
-    """
-    Radar chart pour les top_n modèles sur 5 métriques normalisées.
-    Permet de voir les trade-offs entre performance, stabilité, et efficacité.
-    """
+
     metrics_cfg = [
-        ("test_loss_mean",  "MSE Δs",      True),   # True = lower is better
+        ("test_loss_mean",  "MSE Δs",      True),   
         ("rmse_phys_mean",  "RMSE phys.",  True),
         ("r2_mean",         "R²",          False),
         ("acc_mean",        "Accuracy ε",  False),
@@ -416,7 +343,7 @@ def plot_radar(summary: dict, top_n: int = 6):
     ]
 
     names  = list(summary.keys())
-    # Sélectionner top_n selon test_loss
+  
     sorted_names = sorted(names, key=lambda n: summary[n]["test_loss_mean"])[:top_n]
 
     angles = np.linspace(0, 2 * np.pi, len(metrics_cfg), endpoint=False).tolist()
@@ -433,7 +360,7 @@ def plot_radar(summary: dict, top_n: int = 6):
             if hi == lo:
                 norm = 1.0
             elif lower_better:
-                norm = 1.0 - (v - lo) / (hi - lo)   # inversé : plus bas = meilleur
+                norm = 1.0 - (v - lo) / (hi - lo)  
             else:
                 norm = (v - lo) / (hi - lo)
             values.append(norm)
@@ -456,10 +383,7 @@ def plot_radar(summary: dict, top_n: int = 6):
 
 
 def plot_rmse_per_dim(summary: dict, top_n: int = 5):
-    """
-    Heatmap RMSE physique par dimension pour les top_n modèles.
-    Utile pour voir si un modèle est bon sur θ mais mauvais sur x.
-    """
+
     dim_names  = ["x (m)", "ẋ (m/s)", "θ (rad)", "θ̇ (rad/s)"]
     names      = list(summary.keys())
     sorted_names = sorted(names, key=lambda n: summary[n]["rmse_phys_mean"])[:top_n]
@@ -467,7 +391,7 @@ def plot_rmse_per_dim(summary: dict, top_n: int = 5):
     matrix = np.array([
         np.sqrt(summary[n]["mse_dim_mean"])
         for n in sorted_names
-    ])  # (top_n, 4)
+    ])  
 
     fig, ax = plt.subplots(figsize=(9, max(3, top_n * 0.7)))
     im = ax.imshow(matrix, aspect="auto", cmap="YlOrRd")
@@ -492,7 +416,6 @@ def plot_rmse_per_dim(summary: dict, top_n: int = 5):
 
 
 def print_final_table(summary: dict):
-    """Tableau récapitulatif console trié par test_loss."""
     col = 26
     header = (f"{'Architecture':<{col}} {'MSE_Δs':>12} {'±std':>10} "
               f"{'RMSE_phys':>12} {'R²':>8} {'Acc_ε':>8} "
@@ -529,13 +452,10 @@ def print_final_table(summary: dict):
     return best
 
 
-# ════════════════════════════════════════════════════════════
-# MAIN
-# ════════════════════════════════════════════════════════════
+
 
 if __name__ == "__main__":
 
-    # 1. Chargement
     (s_tr, a_tr, delta_tr,
      s_val, a_val, delta_val,
      s_te, a_te, delta_te, sn_te,
@@ -548,7 +468,6 @@ if __name__ == "__main__":
     test_loader  = DataLoader(TensorDataset(s_te,  a_te,  delta_te),
                               batch_size=BATCH_SIZE, shuffle=False)
 
-    # 2. Boucle de comparaison
     summary = {}
 
     for model_name, build_fn in MODEL_ZOO.items():
@@ -576,7 +495,6 @@ if __name__ == "__main__":
                 model, train_loader, val_loader, ckpt
             )
 
-            # Charger le meilleur checkpoint avant d'évaluer
             model.load_state_dict(torch.load(ckpt, map_location=DEVICE))
             metrics = evaluate_model(model, test_loader, s_te, sn_te, mean, std)
             metrics["val_loss"] = best_val
@@ -589,7 +507,6 @@ if __name__ == "__main__":
                   f"R²={metrics['r2']:.4f}  "
                   f"epochs={n_epochs}")
 
-        # Agrégation des N seeds
         def agg(key):
             vals = [r[key] for r in seed_results]
             return np.mean(vals), np.std(vals), vals
@@ -611,10 +528,8 @@ if __name__ == "__main__":
             "n_params":       n_params,
         }
 
-    # 3. Résultats
     best_name = print_final_table(summary)
 
-    # 4. Visualisations
     plot_barplot(summary, "test_loss", "MSE sur Δs (normalisé)",
                  "Comparaison MSE Δs — toutes architectures",
                  "compare_mse_delta.png")
@@ -626,7 +541,6 @@ if __name__ == "__main__":
     plot_radar(summary, top_n=6)
     plot_rmse_per_dim(summary, top_n=5)
 
-    # 5. Sauvegarde des résultats bruts
     np.save(os.path.join(PLOTS_DIR, "comparison_summary.npy"), summary)
     print("\nRésultats sauvegardés → " + os.path.join(PLOTS_DIR, "comparison_summary.npy"))
     print("\nFigures générées :")
