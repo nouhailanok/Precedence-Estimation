@@ -3,22 +3,10 @@ ppo_agent.py — Pure PPO baseline
 ==================================
 Supports CartPole-v1 and CliffWalking-v1 (no world model).
 
-Usage
------
-    python ppo_agent.py                          # default: CartPole-v1
+    python ppo_agent.py                          
     python ppo_agent.py --env CliffWalking-v1
 
-Metrics (train + greedy eval, alignés avec dqn_with_precedence_CartPole_full.ipynb)
-------------------------------------------------------------------------------------
-  Train : avg reward, std, AUC (aire sous courbe), n_episodes, n_steps
-  Eval  : greedy sur EVAL_N_EPISODES — mean, std, min, max, median, success_rate, lengths
 
-Output
-------
-    PPO_plots/<env>/
-        ppo_curve.png
-        ppo_metrics.json
-        ppo_agent.pth
 """
 
 import os
@@ -33,9 +21,7 @@ import gymnasium as gym
 import scipy.signal
 from scipy.integrate import trapezoid
 
-# ─────────────────────────────────────────────
-# PATHS & SEED
-# ─────────────────────────────────────────────
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SEED     = 42
 DEVICE   = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -43,91 +29,64 @@ DEVICE   = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 np.random.seed(SEED)
 torch.manual_seed(SEED)
 
-# Greedy eval — même protocole que dqn_with_precedence_CartPole_full.ipynb
 EVAL_N_EPISODES = 30
 EVAL_SEED_OFFSET = 1000
 
 
-# ─────────────────────────────────────────────
-# PER-ENVIRONMENT HYPERPARAMETER PROFILES
-# ─────────────────────────────────────────────
+
 ENV_PROFILES = {
     "CartPole-v1": {
-        # ── rollout ──
         "steps_per_epoch":         4_000,
         "epochs":                  30,
         "max_steps_per_episode":   500,
-        # ── network ──
         "hidden_sizes":            (64, 64),
-        # ── optimisation ──
         "policy_lr":               3e-4,
         "value_lr":                1e-3,
         "train_policy_iterations": 80,
         "train_value_iterations":  80,
-        # ── GAE / PPO ──
         "gamma":                   0.99,
         "lam":                     0.97,
         "clip_ratio":              0.2,
         "target_kl":               0.01,
-        # ── plotting / eval (500 = seuil DQN full notebook) ──
         "solve_threshold":         500,
-        # ── reward shaping ──
         "shaped_reward":           False,
-        # ── observation ──
         "discrete_obs":            False,
         "n_states":                None,
     },
 
     "CliffWalking-v1": {
-        # 4×12 grid → 48 discrete states (integer obs), 4 actions (U/D/L/R).
-        # Obs is one-hot encoded → 48-dim float vector fed to the network.
-        # Reward: −1 per step, −100 if cliff, 0 at goal (episode ends).
-        # High lam (0.99): propagates the cliff penalty back through
-        # the trajectory so the agent learns to avoid the cliff edge.
-        # More epochs: sparse signal needs many rollouts to converge.
-        # ── rollout ──
+
         "steps_per_epoch":         4_000,
         "epochs":                  80,
         "max_steps_per_episode":   200,
-        # ── network ──
+
         "hidden_sizes":            (64, 64),
-        # ── optimisation ──
+
         "policy_lr":               3e-4,
         "value_lr":                1e-3,
         "train_policy_iterations": 80,
         "train_value_iterations":  80,
-        # ── GAE / PPO ──
+
         "gamma":                   0.99,
-        "lam":                     0.99,         # high lam — long credit assignment
+        "lam":                     0.99,       
         "clip_ratio":              0.2,
         "target_kl":               0.01,
-        # ── plotting ──
-        "solve_threshold":         -20,          # near-optimal path ≈ −13
-        # ── reward shaping ──
-        "shaped_reward":           False,        # −1/step is sufficient signal
-        # ── observation ──
-        "discrete_obs":            True,         # obs is an int, not an array
-        "n_states":                48,           # 4×12 grid
+
+        "solve_threshold":         -20,          
+
+        "shaped_reward":           False,        
+
+        "discrete_obs":            True,         
+        "n_states":                48,          
     },
 }
 
 SUPPORTED_ENVS = list(ENV_PROFILES.keys())
 
 
-# ─────────────────────────────────────────────
-# OBSERVATION PREPROCESSING
-# ─────────────────────────────────────────────
-def preprocess_obs(obs, cfg: dict) -> np.ndarray:
-    """
-    Convert a raw environment observation to a float32 numpy vector.
 
-    - Continuous envs  (discrete_obs=False): obs is already a float array,
-      returned as-is.
-    - Discrete obs envs (discrete_obs=True):  obs is a single integer.
-      One-hot encode it to an (n_states,) float32 vector so the MLP can
-      treat each cell as a distinct input feature without imposing any
-      ordinal relationship between cell indices.
-    """
+def preprocess_obs(obs, cfg: dict) -> np.ndarray:
+
     if cfg["discrete_obs"]:
         vec = np.zeros(cfg["n_states"], dtype=np.float32)
         vec[int(obs)] = 1.0
@@ -136,34 +95,21 @@ def preprocess_obs(obs, cfg: dict) -> np.ndarray:
 
 
 def get_obs_dim(cfg: dict, env: gym.Env) -> int:
-    """
-    Return the dimensionality of the preprocessed observation vector.
-    For discrete obs envs this is n_states; for continuous it's the
-    raw observation space shape.
-    """
+
     if cfg["discrete_obs"]:
         return cfg["n_states"]
     return env.observation_space.shape[0]
 
 
-# ─────────────────────────────────────────────
-# REWARD SHAPING 
-# ─────────────────────────────────────────────
+
 def shape_reward(obs, next_obs, raw_reward: float,
                  env_name: str, gamma: float) -> float:
-    """
-    Potential-based reward shaping F(s, s') = γ·Φ(s') − Φ(s).
-    Currently unused for all supported envs (kept for future extension).
-    Raw return is always plotted.
-    """
-    return raw_reward   # no shaping active for any current env
+
+    return raw_reward   
 
 
-# ─────────────────────────────────────────────
-# METRICS & GREEDY EVAL  (compatible DQN full notebook)
-# ─────────────────────────────────────────────
+
 def learning_curve_auc(rewards: np.ndarray) -> float:
-    """Aire sous la courbe des returns (trapèzes sur numéro d'épisode)."""
     if len(rewards) == 0:
         return 0.0
     if len(rewards) == 1:
@@ -173,7 +119,6 @@ def learning_curve_auc(rewards: np.ndarray) -> float:
 
 def compute_training_metrics(all_rewards: list, mean_rewards: list,
                              n_episodes: int, n_steps: int) -> dict:
-    """Résumé entraînement : avg, std, AUC, compteurs."""
     arr = np.array(all_rewards, dtype=np.float32)
     last_n = min(50, len(arr))
     return {
@@ -189,7 +134,6 @@ def compute_training_metrics(all_rewards: list, mean_rewards: list,
 
 
 def print_metrics_summary(train_m: dict, eval_m: dict, log_print=print):
-    """Affichage aligné sur le résumé DQN full notebook."""
     log_print(f"\n{'='*72}")
     log_print("  TRAINING METRICS")
     log_print(f"{'='*72}")
@@ -214,22 +158,13 @@ def print_metrics_summary(train_m: dict, eval_m: dict, log_print=print):
     log_print(f"  Eval steps      : {eval_m['total_steps']}")
 
 
-# ─────────────────────────────────────────────
-# DISCOUNTED CUMULATIVE SUMS  (scipy lfilter)
-# ─────────────────────────────────────────────
+
 def discounted_cumulative_sums(x, discount):
     return scipy.signal.lfilter([1], [1, float(-discount)], x[::-1], axis=0)[::-1]
 
 
-# ─────────────────────────────────────────────
-# BUFFER
-# ─────────────────────────────────────────────
 class Buffer:
-    """
-    Fixed-size buffer for one steps_per_epoch rollout.
-    finish_trajectory() computes GAE-λ advantages + rewards-to-go.
-    get() normalises advantages, resets the pointer, and returns all arrays.
-    """
+
     def __init__(self, obs_dim: int, size: int, gamma: float, lam: float):
         self.obs_buf  = np.zeros((size, obs_dim), dtype=np.float32)
         self.act_buf  = np.zeros(size,            dtype=np.int32)
@@ -270,11 +205,8 @@ class Buffer:
                 self.ret_buf, self.logp_buf)
 
 
-# ─────────────────────────────────────────────
-# NETWORKS 
-# ─────────────────────────────────────────────
+
 def build_mlp(in_dim: int, hidden_sizes: tuple, out_dim: int) -> nn.Sequential:
-    """Tanh MLP — standard for PPO policy/value networks."""
     layers, prev = [], in_dim
     for h in hidden_sizes:
         layers += [nn.Linear(prev, h), nn.Tanh()]
@@ -284,7 +216,6 @@ def build_mlp(in_dim: int, hidden_sizes: tuple, out_dim: int) -> nn.Sequential:
 
 
 class Actor(nn.Module):
-    """Outputs raw logits → Categorical policy."""
     def __init__(self, obs_dim: int, n_act: int, hidden: tuple):
         super().__init__()
         self.net = build_mlp(obs_dim, hidden, n_act)
@@ -307,7 +238,6 @@ class Actor(nn.Module):
 
 
 class Critic(nn.Module):
-    """Outputs scalar V(s)."""
     def __init__(self, obs_dim: int, hidden: tuple):
         super().__init__()
         self.net = build_mlp(obs_dim, hidden, 1)
@@ -320,10 +250,7 @@ class Critic(nn.Module):
 def evaluate_ppo_greedy(actor: Actor, env_name: str, cfg: dict,
                         n_episodes: int = EVAL_N_EPISODES,
                         seed_offset: int = EVAL_SEED_OFFSET) -> dict:
-    """
-    Évaluation greedy (argmax logits) — même structure que evaluate_agent_greedy
-    dans dqn_with_precedence_CartPole_full.ipynb.
-    """
+
     env = gym.make(env_name)
     max_steps = cfg.get("max_steps_per_episode", 500)
     solve_threshold = cfg["solve_threshold"]
@@ -380,12 +307,9 @@ def evaluate_ppo_greedy(actor: Actor, env_name: str, cfg: dict,
     }
 
 
-# ─────────────────────────────────────────────
-# PPO UPDATE FUNCTIONS 
-# ─────────────────────────────────────────────
+
 def train_policy(actor, policy_optimizer, obs_t, act_t,
                  logp_old_t, adv_t, clip_ratio, target_kl):
-    """One gradient step on the clipped surrogate. Returns approx KL."""
     policy_optimizer.zero_grad()
     logp_new = actor.logprobabilities(obs_t, act_t)
     ratio    = torch.exp(logp_new - logp_old_t)
@@ -402,7 +326,6 @@ def train_policy(actor, policy_optimizer, obs_t, act_t,
 
 
 def train_value_function(critic, value_optimizer, obs_t, ret_t):
-    """One gradient step on MSE value loss."""
     value_optimizer.zero_grad()
     loss = torch.mean((ret_t - critic(obs_t)) ** 2)
     loss.backward()
@@ -411,9 +334,7 @@ def train_value_function(critic, value_optimizer, obs_t, ret_t):
     return loss.item()
 
 
-# ─────────────────────────────────────────────
-# TRAINING LOOP
-# ─────────────────────────────────────────────
+
 def train_ppo(env_name: str = "CartPole-v1"):
     assert env_name in SUPPORTED_ENVS, \
         f"Unsupported env '{env_name}'. Choose from: {SUPPORTED_ENVS}"
@@ -422,7 +343,6 @@ def train_ppo(env_name: str = "CartPole-v1"):
     plots_dir = os.path.join(BASE_DIR, "PPO_plots", env_name)
     os.makedirs(plots_dir, exist_ok=True)
 
-    # ── Initialize log file ────────────────────────────────────────────
     log_file = open(os.path.join(plots_dir, "training.txt"), "w", encoding="utf-8")
 
     def log_print(*args, **kwargs):
@@ -432,7 +352,7 @@ def train_ppo(env_name: str = "CartPole-v1"):
         log_file.flush()
 
     env     = gym.make(env_name)
-    obs_dim = get_obs_dim(cfg, env)          # 48 for CliffWalking, raw shape otherwise
+    obs_dim = get_obs_dim(cfg, env)         
     n_act   = env.action_space.n
 
     actor  = Actor(obs_dim,  n_act, cfg["hidden_sizes"]).to(DEVICE)
@@ -456,7 +376,7 @@ def train_ppo(env_name: str = "CartPole-v1"):
 
     all_rewards, mean_rewards = [], []
     raw_obs, _ = env.reset(seed=SEED)
-    observation = preprocess_obs(raw_obs, cfg)   # float32 vector from the start
+    observation = preprocess_obs(raw_obs, cfg) 
     ep_return, ep_length = 0.0, 0
     num_episodes_total = 0
     total_steps = 0
@@ -484,11 +404,10 @@ def train_ppo(env_name: str = "CartPole-v1"):
             # always the float32 vector, never the raw integer.
             observation_new = preprocess_obs(raw_obs_new, cfg)
 
-            # shape_reward is a no-op for all current envs (kept for API consistency)
             stored_reward = shape_reward(
                 observation, observation_new, reward, env_name, cfg["gamma"])
 
-            ep_return += reward          # always RAW for honest reporting
+            ep_return += reward         
             ep_length += 1
             total_steps += 1
 
@@ -518,7 +437,7 @@ def train_ppo(env_name: str = "CartPole-v1"):
                 observation = preprocess_obs(raw_obs, cfg)
                 ep_return, ep_length = 0.0, 0
 
-        # ── PPO update ────────────────────────────────────────────────
+
         obs_b, act_b, adv_b, ret_b, logp_b = buffer.get()
 
         obs_t  = torch.tensor(obs_b,  dtype=torch.float32, device=DEVICE)
@@ -549,7 +468,7 @@ def train_ppo(env_name: str = "CartPole-v1"):
 
     env.close()
 
-    # ── Métriques train + greedy eval ─────────────────────────────────
+
     train_metrics = compute_training_metrics(
         all_rewards, mean_rewards, num_episodes_total, total_steps
     )
@@ -568,7 +487,7 @@ def train_ppo(env_name: str = "CartPole-v1"):
         json.dump(metrics, f, indent=2)
     log_print(f"[Metrics] Saved → {metrics_path}")
 
-    # ── Plots ─────────────────────────────────────────────────────────
+
     threshold = cfg["solve_threshold"]
     train_avg = train_metrics["train_avg_reward"]
     eval_mean = eval_metrics["eval_mean"]
@@ -662,7 +581,7 @@ def train_ppo(env_name: str = "CartPole-v1"):
     plt.show()
     log_print(f"[Plot] Saved → {fig_path}")
 
-    # ── Save weights ──────────────────────────────────────────────────
+
     pth_path = os.path.join(plots_dir, "ppo_agent.pth")
     torch.save({
         "actor":        actor.state_dict(),
@@ -685,9 +604,8 @@ def train_ppo(env_name: str = "CartPole-v1"):
     return actor, critic, all_rewards, mean_rewards, train_metrics, eval_metrics
 
 
-# ─────────────────────────────────────────────
-# ENTRY POINT
-# ─────────────────────────────────────────────
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="PPO baseline — multi-env")
     parser.add_argument(
