@@ -2,23 +2,8 @@
 dqn_agent.py — Pure DQN baseline
 =================================
 Supports CartPole-v1 and CliffWalking-v1 (no world model).
-
-Usage
------
-    python dqn_agent.py                          # default: CartPole-v1
+    python dqn_agent.py                         
     python dqn_agent.py --env CliffWalking-v1
-
-Metrics (train + greedy eval, alignés avec dqn_with_precedence_CartPole_full.ipynb)
-------------------------------------------------------------------------------------
-  Train : avg reward, std, AUC, n_episodes, n_steps
-  Eval  : greedy sur EVAL_N_EPISODES — mean, std, min, max, median, success_rate, lengths
-
-Output
-------
-    DQN_plots/<env>/
-        dqn_curve.png
-        dqn_metrics.json
-        dqn_agent.pth
 """
 
 import os
@@ -35,9 +20,7 @@ import gymnasium as gym
 from scipy.integrate import trapezoid
 from collections import deque
 
-# ─────────────────────────────────────────────
-# PATHS & SEED
-# ─────────────────────────────────────────────
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SEED     = 42
 DEVICE   = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -46,7 +29,7 @@ random.seed(SEED)
 np.random.seed(SEED)
 torch.manual_seed(SEED)
 
-# Greedy eval — même protocole que dqn_with_precedence_CartPole_full.ipynb
+
 EVAL_N_EPISODES = 30
 EVAL_SEED_OFFSET = 1000
 
@@ -60,67 +43,62 @@ def json_converter(obj):
     raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
 
-# ─────────────────────────────────────────────
-# PER-ENVIRONMENT HYPERPARAMETER PROFILES
-# ─────────────────────────────────────────────
+
 ENV_PROFILES = {
     "CartPole-v1": {
-        # ── training ──
+
         "n_episodes":        600,
         "max_steps":         500,
-        # ── network ──
+
         "hidden_sizes":      (64, 64),
-        # ── replay ──
+
         "buffer_size":       50_000,
         "batch_size":        64,
         "warmup_steps":      1_000,
-        # ── optimisation ──
+
         "lr":                1e-3,
         "gamma":             0.99,
-        # ── target network ──
+
         "target_update_freq": 200,
-        # ── exploration ──
+
         "eps_start":         1.0,
         "eps_end":           0.01,
         "eps_decay_steps":   10_000,
-        # ── grad clipping ──
+
         "max_grad_norm":     10.0,
-        # ── plotting / eval (500 = seuil DQN full notebook) ──
+
         "solve_threshold":   500,
         "loss_smooth_window": 200,
-        # ── observation ──
+
         "discrete_obs":      False,
         "n_states":          None,
     },
 
     "CliffWalking-v1": {
-        # 4×12 grid = 48 discrete states.
-        # Deep Q-learning maps continuous outputs, so states are one-hot encoded.
-        # High target update frequency allows Q-estimates to stabilize.
-        # ── training ──
+  
         "n_episodes":        500,
         "max_steps":         300,
-        # ── network ──
+
         "hidden_sizes":      (64, 64),
-        # ── replay ──
+
         "buffer_size":       20_000,
         "batch_size":        64,
         "warmup_steps":      500,
-        # ── optimisation ──
+
         "lr":                1e-3,
         "gamma":             0.99,
-        # ── target network ──
+
         "target_update_freq": 200,
-        # ── exploration ──
+
         "eps_start":         1.0,
         "eps_end":           0.01,
-        "eps_decay_steps":   5_000,        # Fast decay — environment is highly directional
-        # ── grad clipping ──
-        "max_grad_norm":     1.0,          # Tighter gradient bounds due to sharp -100 jumps
-        # ── plotting ──
-        "solve_threshold":   -20,          # Optimal non-cliff trajectory score is -13
+        "eps_decay_steps":   5_000,        
+
+        "max_grad_norm":     1.0,          
+
+        "solve_threshold":   -20,         
         "loss_smooth_window": 100,
-        # ── observation ──
+
         "discrete_obs":      True,
         "n_states":          48,
     },
@@ -129,16 +107,11 @@ ENV_PROFILES = {
 SUPPORTED_ENVS = list(ENV_PROFILES.keys())
 
 
-# ─────────────────────────────────────────────
-# OBSERVATION PREPROCESSING
-# ─────────────────────────────────────────────
+
 def preprocess_obs(obs, cfg: dict) -> np.ndarray:
-    """
-    Transforms raw observations to a consistent float32 format.
-    One-hot encodes discrete integer spaces into orthogonal coordinate features.
-    """
+
     if cfg["discrete_obs"]:
-        # Unwrap observation if wrapped inside numpy wrappers or tuples
+
         raw_idx = int(obs[0]) if isinstance(obs, (tuple, list, np.ndarray)) else int(obs)
         vec = np.zeros(cfg["n_states"], dtype=np.float32)
         vec[raw_idx] = 1.0
@@ -147,17 +120,13 @@ def preprocess_obs(obs, cfg: dict) -> np.ndarray:
 
 
 def get_obs_dim(cfg: dict, env: gym.Env) -> int:
-    """Determines layer feature size for the network initialization."""
     if cfg["discrete_obs"]:
         return cfg["n_states"]
     return env.observation_space.shape[0]
 
 
-# ─────────────────────────────────────────────
-# METRICS & GREEDY EVAL  (compatible DQN full notebook)
-# ─────────────────────────────────────────────
+
 def learning_curve_auc(rewards: np.ndarray) -> float:
-    """Aire sous la courbe des returns (trapèzes sur numéro d'épisode)."""
     if len(rewards) == 0:
         return 0.0
     if len(rewards) == 1:
@@ -210,7 +179,6 @@ def print_metrics_summary(train_m: dict, eval_m: dict, log_print=print):
 # Q-NETWORK
 # ─────────────────────────────────────────────
 def build_mlp(in_dim: int, hidden_sizes: tuple, out_dim: int) -> nn.Sequential:
-    """ReLU MLP — standard for Q-networks."""
     layers, prev = [], in_dim
     for h in hidden_sizes:
         layers += [nn.Linear(prev, h), nn.ReLU()]
@@ -228,9 +196,7 @@ class QNetwork(nn.Module):
         return self.net(obs)
 
 
-# ─────────────────────────────────────────────
-# REPLAY BUFFER
-# ─────────────────────────────────────────────
+
 class ReplayBuffer:
     def __init__(self, capacity: int):
         self.buf = deque(maxlen=capacity)
@@ -259,9 +225,7 @@ class ReplayBuffer:
         return len(self.buf)
 
 
-# ─────────────────────────────────────────────
-# ε-GREEDY POLICY
-# ─────────────────────────────────────────────
+
 def get_epsilon(step: int, cfg: dict) -> float:
     frac = min(step / cfg["eps_decay_steps"], 1.0)
     return cfg["eps_start"] + frac * (cfg["eps_end"] - cfg["eps_start"])
@@ -276,9 +240,7 @@ def select_action(obs: np.ndarray, q_net: QNetwork,
     return int(q_net(obs_t).argmax(dim=1).item())
 
 
-# ─────────────────────────────────────────────
-# DQN UPDATE
-# ─────────────────────────────────────────────
+
 def dqn_update(q_net: QNetwork, target_net: QNetwork,
                optimizer: optim.Optimizer,
                replay: ReplayBuffer, cfg: dict) -> float:
@@ -304,10 +266,7 @@ def dqn_update(q_net: QNetwork, target_net: QNetwork,
 def evaluate_dqn_greedy(q_net: QNetwork, env_name: str, cfg: dict,
                         n_episodes: int = EVAL_N_EPISODES,
                         seed_offset: int = EVAL_SEED_OFFSET) -> dict:
-    """
-    Évaluation greedy (ε=0) — même structure que evaluate_agent_greedy
-    dans dqn_with_precedence_CartPole_full.ipynb.
-    """
+
     env = gym.make(env_name)
     max_steps = cfg["max_steps"]
     solve_threshold = cfg["solve_threshold"]
@@ -365,9 +324,7 @@ def evaluate_dqn_greedy(q_net: QNetwork, env_name: str, cfg: dict,
     }
 
 
-# ─────────────────────────────────────────────
-# TRAINING LOOP
-# ─────────────────────────────────────────────
+
 def train_dqn(env_name: str = "CartPole-v1"):
     assert env_name in SUPPORTED_ENVS, \
         f"Unsupported env '{env_name}'. Choose from: {SUPPORTED_ENVS}"
@@ -463,7 +420,7 @@ def train_dqn(env_name: str = "CartPole-v1"):
         json.dump(metrics, f, indent=2, default=json_converter)
     print(f"[Metrics] Saved → {metrics_path}")
 
-    # ── Plots ────────────────────────────────────────────────────────────────
+
     threshold = cfg["solve_threshold"]
     train_avg = train_metrics["train_avg_reward"]
     eval_mean = eval_metrics["eval_mean"]
@@ -545,7 +502,7 @@ def train_dqn(env_name: str = "CartPole-v1"):
     plt.show()
     print(f"[Plot] Saved → {fig_path}")
 
-    # ── Save weights ──────────────────────────────────────────────────────────
+
     pth_path = os.path.join(plots_dir, "dqn_agent.pth")
     torch.save({
         "q_net":         q_net.state_dict(),
@@ -566,9 +523,8 @@ def train_dqn(env_name: str = "CartPole-v1"):
     return q_net, all_rewards, mean_rewards, train_metrics, eval_metrics
 
 
-# ─────────────────────────────────────────────
-# ENTRY POINT
-# ─────────────────────────────────────────────
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="DQN baseline — multi-env")
     parser.add_argument(
