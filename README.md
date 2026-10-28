@@ -143,6 +143,44 @@ Le script `train_dnn_mixed_policy.py` entraîne un réseau qui prédit le dépla
 s' prédit = s + Δs prédit
 ```
 
+#### 4.1 Procédures de sélection selon l'environnement
+
+Les expériences de prédiction de transition comparent plusieurs formulations de cible :
+
+| Approche | Entrée | Cible | Perte |
+|---|---|---|---|
+| A — État complet à 1 pas | `s_t + a_t` | `s_{t+1}` | MSE |
+| B — Delta à 1 pas | `s_t + a_t` | `s_{t+1} - s_t` | MSE |
+| C — Delta à 1 pas robuste | `s_t + a_t` | `s_{t+1} - s_t` | Huber |
+| D — État complet à n pas | `s_t + [a_t, ..., a_{t+n-1}]` | `s_{t+n}` | MSE |
+| E — Delta à n pas | `s_t + [a_t, ..., a_{t+n-1}]` | `s_{t+n} - s_t` | Huber |
+
+En formulation delta, on prédit d'abord le déplacement puis on reconstruit l'état futur :
+
+```text
+Δs prédit = modèle(s_t, a_t, ...)
+s' prédit = s_t + Δs prédit
+```
+
+##### CartPole-v1
+
+Pour `CartPole-v1`, les approches A à E sont comparées. Les configurations multi-pas testent `n ∈ {3, 5, 10}` et le meilleur horizon est sélectionné via l'erreur de validation. Les observations sont des vecteurs continus normalisés de dimension 4, et les actions sont encodées en one-hot avec 2 actions.
+
+##### CliffWalking-v1
+
+Pour `CliffWalking-v1`, l'entraînement se concentre directement sur la prédiction delta pour `n ∈ {1, 2, 3, 5, 8}`. Les états sont encodés en one-hot sur 48 cellules et l'environnement comporte 4 actions. Le meilleur horizon est choisi selon la MSE de validation puis évalué sur l'ensemble de test.
+
+| Élément | CartPole-v1 | CliffWalking-v1 |
+|---|---|---|
+| Type d'état | Continu (4D) | Discret (48 cellules) |
+| Encodage des états | Vecteur normalisé | One-hot (48) |
+| Nombre d'actions | 2 | 4 |
+| Stratégies | Comparaison A–E (état complet et delta) | Delta uniquement |
+| Horizons testés | `n ∈ {3, 5, 10}` (pour les variantes multi-pas) | `n ∈ {1, 2, 3, 5, 8}` |
+| Critère de sélection | Erreur de validation | MSE de validation |
+
+Ces différences d'horizons et de sélection sont intentionnelles : CartPole compare d'abord les formulations de cibles (A–E), tandis que CliffWalking se concentre sur la prédiction delta à travers plusieurs fenêtres temporelles.
+
 Le réseau reçoit un état de dimension 4 et une action one-hot de dimension 2, soit une entrée de dimension 6. Il prédit les quatre composantes de `Δs` correspondant à :
 
 - position du chariot `x` ;
